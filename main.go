@@ -252,6 +252,8 @@ func (a *App) serve(w http.ResponseWriter, r *http.Request) {
 	// ---- 前缀路由 ----
 	seg := segs(path)
 	switch {
+	case path == "/admin/libraries" || strings.HasPrefix(path, "/admin/libraries/"):
+		a.store.requireAdmin(a.handleLibraries)(w, r)
 	case path == "/api/files" || strings.HasPrefix(path, "/api/files/"):
 		a.store.requireAdmin(a.handleFiles)(w, r)
 	case path == "/Users" || strings.HasPrefix(path, "/Users/"):

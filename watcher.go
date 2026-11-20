@@ -40,13 +40,17 @@ func (a *App) collectStamps() map[string]fileStamp {
 	return out
 }
 
-// libForPath 判断某文件属于哪个媒体库。
+// libForPath 判断某文件属于哪个媒体库（按库配置的多路径匹配）。
 func (a *App) libForPath(path string) string {
-	for _, root := range a.cfg.MediaRoots {
-		if path == root ||
-			strings.HasPrefix(path, root+string(os.PathSeparator)) ||
-			strings.HasPrefix(path, root+"/") {
-			return "lib-" + h16(root)
+	a.store.mu.RLock()
+	defer a.store.mu.RUnlock()
+	for _, l := range a.store.Libraries {
+		for _, root := range l.Paths {
+			if path == root ||
+				strings.HasPrefix(path, root+string(os.PathSeparator)) ||
+				strings.HasPrefix(path, root+"/") {
+				return l.Id
+			}
 		}
 	}
 	return ""

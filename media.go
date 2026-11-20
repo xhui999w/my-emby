@@ -147,9 +147,9 @@ type ScanResult struct {
 func (s *Store) scanAll(onlyLib string) ScanResult {
 	var res ScanResult
 	s.mu.Lock()
-	for _, root := range s.cfg.MediaRoots {
-		libID := "lib-" + h16(root)
-		if _, ok := s.Libraries[libID]; !ok {
+	if len(s.Libraries) == 0 {
+		for _, root := range s.cfg.MediaRoots {
+			libID := "lib-" + h16(root)
 			name := filepath.Base(root)
 			if name == "" || name == "." || name == string(filepath.Separator) {
 				name = "媒体库"
@@ -189,18 +189,30 @@ func (s *Store) scanAll(onlyLib string) ScanResult {
 		}
 	}
 
-	for _, root := range s.cfg.MediaRoots {
-		libID := "lib-" + h16(root)
-		s.mu.RLock()
-		lib := s.Libraries[libID]
-		s.mu.RUnlock()
-		if lib == nil {
+	s.mu.RLock()
+	type libRoot struct {
+		lib  *Library
+		root string
+	}
+	var pairs []libRoot
+	for _, l := range s.Libraries {
+		for _, r := range l.Paths {
+			pairs = append(pairs, libRoot{l, r})
+		}
+	}
+	s.mu.RUnlock()
+	seenLib := map[string]bool{}
+	for _, pr := range pairs {
+		lib := pr.lib
+		root := pr.root
+		if onlyLib != "" && lib.Id != onlyLib {
 			continue
 		}
-		if onlyLib != "" && libID != onlyLib {
-			continue
+		if !seenLib[lib.Id] {
+			seenLib[lib.Id] = true
+			res.Libs++
 		}
-		res.Libs++
+		libID := lib.Id
 		ct := lib.CollectionType
 
 		_ = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {

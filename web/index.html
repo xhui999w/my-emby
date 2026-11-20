@@ -77,6 +77,31 @@
   .close{position:absolute;right:22px;top:18px;font-size:20px;color:var(--muted);cursor:pointer}
   .code{background:#0b0d11;border:1px solid var(--line);border-radius:8px;padding:12px;font-family:ui-monospace,Consolas,monospace;font-size:12px;white-space:pre-wrap;color:#cdd6e3}
   label.chk{display:flex;align-items:center;gap:6px;color:var(--fg);font-size:13px}
+  /* 媒体库管理 */
+  .lib-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+  .libcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+  .collage{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:1px;height:150px;background:#0b0d11}
+  .collage img{width:100%;height:100%;object-fit:cover;display:block}
+  .collage .ph{background:linear-gradient(135deg,#1a2030,#0b0d11)}
+  .libmeta{padding:12px 14px;flex:1;display:flex;flex-direction:column}
+  .libname{font-weight:700;font-size:15px}
+  .libtype{color:var(--muted);font-size:12px;margin-top:2px}
+  .libcounts{color:var(--muted);font-size:12px;margin-top:6px}
+  .libactions{display:flex;gap:6px;align-items:center;margin-top:auto;padding-top:10px;font-size:12px;flex-wrap:wrap}
+  .libactions button{padding:4px 9px;font-size:12px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block;margin-right:2px}
+  .dialog{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:60;padding:24px}
+  .dialog.show{display:flex}
+  .dialog .box{background:#1b1f27;border:1px solid var(--line);border-radius:16px;width:540px;max-width:100%;padding:22px}
+  .dialog h3{margin:0 0 16px;font-size:18px}
+  .field{margin-bottom:14px}
+  .field>label{display:block;color:var(--muted);font-size:13px;margin-bottom:6px}
+  .chip{display:inline-flex;align-items:center;gap:8px;background:#0b0d11;border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin:4px 6px 0 0;font-size:13px}
+  .chip button{padding:0 5px;border:0;background:transparent;color:#ff9b9b}
+  .dirlist{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+  .dirrow{padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;color:var(--fg)}
+  .dirrow:hover{background:#23272f}
 </style>
 </head>
 <body>
@@ -172,17 +197,20 @@
         </div>
       </section>
 
-      <!-- 媒体管理 -->
+      <!-- 媒体管理（媒体库管理） -->
       <section id="sec-media" class="pane hidden">
-        <h2>媒体管理</h2>
-        <div class="row-flex" style="margin-bottom:12px">
-          <button class="primary" data-op="rescan">刷新媒体库</button>
-          <input id="mediaSearch" placeholder="搜索…" style="width:220px" />
-          <span class="tag" id="mediaInfo">—</span>
+        <h2>媒体库管理</h2>
+        <div class="panel lib-toolbar" style="margin-bottom:16px">
+          <span class="muted">扫描并发:</span>
+          <input id="scanConc" type="number" min="1" max="64" style="width:70px" />
+          <button class="primary" id="newLibBtn">＋ 新建媒体库</button>
+          <button id="batchLibBtn">📁 批量添加媒体库</button>
+          <button id="startScanBtn">▶ 开始扫描</button>
+          <button id="refreshAllBtn">🔄 刷新全部媒体</button>
+          <button id="stopScanBtn">■ 停止</button>
+          <span class="tag" id="libInfo">—</span>
         </div>
-        <div class="panel" style="padding:8px 14px">
-          <table><thead><tr><th>名称</th><th>类型</th><th>年份</th><th>容器</th><th style="width:200px">操作</th></tr></thead><tbody id="mediaBody"></tbody></table>
-        </div>
+        <div id="libGrid" class="lib-grid"></div>
       </section>
 
       <!-- 文件管理 -->
@@ -336,6 +364,37 @@
   </div>
 </div>
 
+<!-- 新建媒体库 -->
+<div class="dialog" id="newLibDlg">
+  <div class="box">
+    <h3>新建媒体库</h3>
+    <div class="field"><label>媒体库类型</label>
+      <select id="libType" style="width:100%"><option value="movies">电影</option><option value="tvshows">电视剧</option></select>
+    </div>
+    <div class="field"><label>媒体库名称</label><input id="libName" style="width:100%" /></div>
+    <div class="field"><label class="chk"><input type="checkbox" id="libPenetrate"> 穿透识别媒体目录</label></div>
+    <div class="field"><label>媒体目录</label>
+      <div id="libPaths" style="margin-bottom:8px"></div>
+      <div class="row-flex"><button id="pickDirBtn">＋ 添加目录</button><span class="tag" id="libPathHint">点击选择媒体目录</span></div>
+    </div>
+    <div class="row-flex" style="justify-content:flex-end;margin-top:16px">
+      <button id="libCancel">取消</button><button class="primary" id="libSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 目录选择 -->
+<div class="dialog" id="dirDlg">
+  <div class="box">
+    <h3>选择媒体目录</h3>
+    <div class="row-flex" style="margin-bottom:10px"><input id="dirPath" style="flex:1" value="/" /><button id="dirGo">进入</button></div>
+    <div class="dirlist" id="dirList"></div>
+    <div class="row-flex" style="justify-content:flex-end;margin-top:14px">
+      <button id="dirCancel">取消</button><button class="primary" id="dirPick">选择当前目录</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -377,7 +436,7 @@ function show(sec){
   document.querySelectorAll('.sidebar .nav[data-sec]').forEach(n=>n.classList.toggle('active', n.dataset.sec===sec));
   if(sec==='library') loadWall();
   else if(sec==='dashboard') loadDashboard();
-  else if(sec==='media') loadMedia();
+  else if(sec==='media') loadLibraries();
   else if(sec==='files') loadFiles($('#filePath').value||'/');
   else if(sec==='scrape') loadScrape();
   else if(sec==='probe') loadProbe();
@@ -451,24 +510,74 @@ async function loadDashboard(){
 }
 function ticks(t){ t=Math.floor((t||0)/10000000); const h=Math.floor(t/3600),m=Math.floor((t%3600)/60),s=t%60; return (h?h+':':'')+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); }
 
-/* ---------- 媒体管理 ---------- */
-async function loadMedia(){
-  const body=$('#mediaBody'); body.innerHTML='<tr><td colspan="5" class="empty">加载中…</td></tr>';
-  const sort=localStorage.getItem('ge_sort')||'SortName';
-  const search=($('#mediaSearch').value||'').trim();
+/* ---------- 媒体库管理 ---------- */
+async function loadLibraries(){
+  const grid=$('#libGrid'); grid.innerHTML='<div class="empty">加载中…</div>';
   try{
-    let url='/Users/'+state.user.Id+'/Items?Recursive=true&IncludeItemTypes=Movie,Series&SortBy='+encodeURIComponent(sort)+'&Limit=1000';
-    if(search) url+='&SearchTerm='+encodeURIComponent(search);
-    const res=await api(url);
-    $('#mediaInfo').textContent=(res.TotalRecordCount||0)+' 项';
-    body.innerHTML=(res.Items||[]).map(it=>'<tr><td>'+esc(it.Name)+'</td><td>'+(it.Type==='Series'?'剧集':'电影')+'</td><td>'+(it.ProductionYear||'')+'</td><td>'+esc(it.Container||'')+'</td>'+
-      '<td><button data-play="'+it.Id+'">播放</button> <button data-ren="'+it.Id+'">改名</button> <button class="danger" data-del="'+it.Id+'">删除</button></td></tr>').join('')||'<tr><td colspan="5" class="empty">空</td></tr>';
-    body.querySelectorAll('[data-play]').forEach(b=>b.onclick=()=>openDetail(b.dataset.play));
-    body.querySelectorAll('[data-ren]').forEach(b=>b.onclick=async()=>{ const it=res.Items.find(x=>x.Id===b.dataset.ren); const nn=prompt('新名称',it?it.Name:''); if(!nn)return; try{ await api('/Items/'+b.dataset.ren,{method:'PUT',body:JSON.stringify({Name:nn})}); loadMedia(); }catch(e){alert('改名失败：'+e.message)} });
-    body.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{ if(!confirm('确认删除该媒体（含磁盘文件）？'))return; try{ await api('/Items/'+b.dataset.del,{method:'DELETE'}); loadMedia(); }catch(e){alert('删除失败：'+e.message)} });
-  }catch(e){ body.innerHTML='<tr><td colspan="5" class="empty">加载失败：'+esc(e.message)+'</td></tr>'; }
+    const res=await api('/admin/libraries');
+    if($('#scanConc')) $('#scanConc').value=res.ScanConcurrency||2;
+    $('#libInfo').textContent=(res.TotalRecordCount||0)+' 个媒体库';
+    const libs=res.Items||[];
+    if(!libs.length){ grid.innerHTML='<div class="empty">还没有媒体库，点「＋ 新建媒体库」添加。</div>'; return; }
+    grid.innerHTML=''; for(const l of libs) grid.appendChild(renderLibCard(l));
+  }catch(e){ grid.innerHTML='<div class="empty">加载失败：'+esc(e.message)+'</div>'; }
 }
-$('#mediaSearch').addEventListener('input',()=>{ clearTimeout(window._mt); window._mt=setTimeout(loadMedia,300); });
+function renderLibCard(l){
+  const card=document.createElement('div'); card.className='libcard';
+  const col=document.createElement('div'); col.className='collage';
+  const ids=(l.SampleIds||[]).slice(0,4);
+  for(let i=0;i<4;i++){ if(ids[i]){ const im=document.createElement('img'); im.src='/Items/'+ids[i]+'/Images/Primary?maxWidth=300&api_key='+encodeURIComponent(state.token); im.onerror=()=>{im.style.visibility='hidden'}; col.appendChild(im);} else { const d=document.createElement('div'); d.className='ph'; col.appendChild(d);} }
+  const meta=document.createElement('div'); meta.className='libmeta';
+  const isTV=l.CollectionType==='tvshows';
+  meta.innerHTML='<div class="libname">'+esc(l.Name)+'</div><div class="libtype">'+(isTV?'电视剧':'电影')+'</div>'+
+    '<div class="libcounts">'+(isTV?('共 '+(l.Series||0)+' 部 · '+(l.Episodes||0)+' 集'):('共 '+(l.Movies||0)+' 部'))+'</div>';
+  const acts=document.createElement('div'); acts.className='libactions';
+  acts.innerHTML='<span class="dot"></span> 就绪 <button data-scan>扫描</button><button data-ren>改名</button><button class="danger" data-del>删除</button>';
+  acts.querySelector('[data-scan]').onclick=async()=>{ try{ await api('/admin/libraries/'+l.Id+'/scan',{method:'POST',body:'{}'}); alert('已开始扫描：'+l.Name);}catch(e){alert('失败：'+e.message)} };
+  acts.querySelector('[data-ren]').onclick=async()=>{ const nn=prompt('新名称',l.Name); if(!nn)return; try{ await api('/admin/libraries/'+l.Id,{method:'PUT',body:JSON.stringify({Name:nn})}); loadLibraries(); }catch(e){alert('失败：'+e.message)} };
+  acts.querySelector('[data-del]').onclick=async()=>{ if(!confirm('删除媒体库「'+l.Name+'」？（只移除库，不删文件）'))return; try{ await api('/admin/libraries/'+l.Id,{method:'DELETE'}); loadLibraries(); }catch(e){alert('失败：'+e.message)} };
+  meta.appendChild(acts); card.appendChild(col); card.appendChild(meta); return card;
+}
+let libSelectedPaths=[];
+function openNewLib(){ libSelectedPaths=[]; $('#libName').value=''; $('#libType').value='movies'; $('#libPenetrate').checked=false; renderLibPaths(); $('#newLibDlg').classList.add('show'); }
+function renderLibPaths(){ const box=$('#libPaths'); box.innerHTML=libSelectedPaths.length?libSelectedPaths.map((p,i)=>'<span class="chip">'+esc(p)+'<button data-rm="'+i+'">✕</button></span>').join(''):'<span class="tag">点击选择媒体目录</span>'; box.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{libSelectedPaths.splice(parseInt(b.dataset.rm,10),1);renderLibPaths();}); }
+$('#newLibBtn').onclick=openNewLib;
+$('#libCancel').onclick=()=>$('#newLibDlg').classList.remove('show');
+$('#libSave').onclick=async()=>{
+  const name=$('#libName').value.trim(); if(!name){alert('请输入名称');return;}
+  if(!libSelectedPaths.length){alert('请至少选择一个目录');return;}
+  try{ await api('/admin/libraries',{method:'POST',body:JSON.stringify({Name:name,CollectionType:$('#libType').value,Paths:libSelectedPaths})}); $('#newLibDlg').classList.remove('show'); loadLibraries(); }catch(e){alert('创建失败：'+e.message)}
+};
+let dirMode='new', dirCur='/';
+function openDirPicker(mode){ dirMode=mode; $('#dirDlg').classList.add('show'); browseDirs('/'); }
+async function browseDirs(path){ dirCur=path; $('#dirPath').value=path; const list=$('#dirList'); list.innerHTML='<div class="empty">加载中…</div>';
+  try{ const res=await api('/api/files?path='+encodeURIComponent(path)); const dirs=(res.entries||[]).filter(e=>e.isDir);
+    let rows=''; if(path!=='/') rows+='<div class="dirrow" data-dir="'+esc(parentPath(path))+'">⬆ 上级目录<span></span></div>';
+    rows+=dirs.map(e=>'<div class="dirrow" data-dir="'+esc(e.path)+'">📁 '+esc(e.name)+'<span>›</span></div>').join('');
+    list.innerHTML=rows||'<div class="empty">无子目录</div>';
+    list.querySelectorAll('[data-dir]').forEach(r=>r.onclick=()=>browseDirs(r.dataset.dir));
+  }catch(e){ list.innerHTML='<div class="empty">加载失败：'+esc(e.message)+'</div>'; }
+}
+$('#pickDirBtn').onclick=()=>openDirPicker('new');
+$('#dirGo').onclick=()=>browseDirs($('#dirPath').value||'/');
+$('#dirCancel').onclick=()=>$('#dirDlg').classList.remove('show');
+$('#dirPick').onclick=async()=>{
+  if(dirMode==='batch'){ $('#dirDlg').classList.remove('show'); await createBatch(dirCur); return; }
+  if(!libSelectedPaths.includes(dirCur)) libSelectedPaths.push(dirCur); renderLibPaths(); $('#dirDlg').classList.remove('show');
+};
+$('#batchLibBtn').onclick=()=>openDirPicker('batch');
+async function createBatch(parent){
+  try{ const res=await api('/api/files?path='+encodeURIComponent(parent)); const dirs=(res.entries||[]).filter(e=>e.isDir);
+    if(!dirs.length){ alert('该目录下没有子目录'); return; }
+    if(!confirm('将为 '+parent+' 下的 '+dirs.length+' 个子目录各创建一个媒体库，继续？'))return;
+    let ok=0; for(const d of dirs){ const tv=/tv|show|series|剧/i.test(d.name); try{ await api('/admin/libraries',{method:'POST',body:JSON.stringify({Name:d.name,CollectionType:tv?'tvshows':'movies',Paths:[d.path]})}); ok++; }catch(e){} }
+    alert('已创建 '+ok+' 个媒体库'); loadLibraries();
+  }catch(e){ alert('批量添加失败：'+e.message); }
+}
+if($('#scanConc')) $('#scanConc').addEventListener('change',async()=>{ const v=parseInt($('#scanConc').value,10)||2; try{ await api('/admin/libraries/concurrency',{method:'PUT',body:JSON.stringify({Value:v})}); }catch(e){} });
+$('#startScanBtn').onclick=async()=>{ try{ await api('/admin/scan',{method:'PUT',body:'{"Paused":false}'}); await api('/admin/libraries/scan-all',{method:'POST',body:'{}'}); alert('已开始扫描'); }catch(e){alert('失败：'+e.message)} };
+$('#refreshAllBtn').onclick=async()=>{ try{ await api('/admin/libraries/scan-all',{method:'POST',body:'{}'}); alert('已开始刷新全部'); }catch(e){alert('失败：'+e.message)} };
+$('#stopScanBtn').onclick=async()=>{ try{ await api('/admin/scan',{method:'PUT',body:'{"Paused":true}'}); alert('已停止扫描'); }catch(e){alert('失败：'+e.message)} };
 $('#sortSave').onclick=()=>{ localStorage.setItem('ge_sort',$('#sortSel').value); $('#sortInfo').textContent='已保存：'+$('#sortSel').value; };
 $('#sortSel').value=localStorage.getItem('ge_sort')||'SortName';
 
