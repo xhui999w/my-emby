@@ -5,10 +5,9 @@ import (
 )
 
 func (a *App) handleMediaFolders(w http.ResponseWriter, r *http.Request, u *User) {
-	a.store.mu.RLock()
-	defer a.store.mu.RUnlock()
-	items := make([]map[string]any, 0, len(a.store.Libraries))
-	for _, l := range a.store.Libraries {
+	libs := a.store.orderedLibraries()
+	items := make([]map[string]any, 0, len(libs))
+	for _, l := range libs {
 		items = append(items, map[string]any{
 			"Id": l.Id, "Name": l.Name, "Type": "CollectionFolder",
 			"IsFolder": true, "CollectionType": l.CollectionType, "ServerId": a.store.ServerId,
@@ -18,10 +17,9 @@ func (a *App) handleMediaFolders(w http.ResponseWriter, r *http.Request, u *User
 }
 
 func (a *App) handleVirtualFolders(w http.ResponseWriter, r *http.Request, u *User) {
-	a.store.mu.RLock()
-	defer a.store.mu.RUnlock()
-	out := make([]map[string]any, 0, len(a.store.Libraries))
-	for _, l := range a.store.Libraries {
+	libs := a.store.orderedLibraries()
+	out := make([]map[string]any, 0, len(libs))
+	for _, l := range libs {
 		out = append(out, map[string]any{
 			"Name": l.Name, "ItemId": l.Id, "CollectionType": l.CollectionType,
 			"Locations": l.Paths, "LibraryOptions": map[string]any{},

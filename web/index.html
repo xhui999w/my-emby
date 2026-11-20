@@ -116,6 +116,12 @@
   .provider{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-size:13px;margin-left:6px}
   .provider.on{border-color:var(--accent);background:#16233b}
   .provider.off{opacity:.45}
+  .sortrow{display:flex;align-items:center;gap:16px;padding:14px 16px;border-bottom:1px solid var(--line);cursor:grab}
+  .sortrow:last-child{border-bottom:0}
+  .sortrow.dragging{opacity:.5}
+  .sortrow.over{border-top:2px solid var(--accent)}
+  .handle{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:8px;color:var(--muted);flex:0 0 auto}
+  .sname{font-size:16px;font-weight:600}
 </style>
 </head>
 <body>
@@ -274,21 +280,10 @@
 
       <!-- 媒体排序 -->
       <section id="sec-sort" class="pane hidden">
-        <h2>媒体排序</h2>
-        <div class="panel">
-          <div class="row-flex">
-            <label>媒体列表排序：
-              <select id="sortSel">
-                <option value="SortName">名称</option>
-                <option value="ProductionYear">年份（新→旧）</option>
-                <option value="DateCreated">最近添加</option>
-              </select>
-            </label>
-            <button class="primary" id="sortSave">保存</button>
-            <span class="tag" id="sortInfo">—</span>
-          </div>
-          <p class="muted" style="margin-top:10px">排序偏好保存在浏览器本地，用于「媒体管理」列表。</p>
-        </div>
+        <h2>媒体库排序</h2>
+        <p class="muted" style="margin:-8px 0 16px">按住 ≡ 拖动调整，支持鼠标和触屏；调整后保存，首页及客户端媒体库使用相同顺序。</p>
+        <div class="panel" style="padding:4px 0"><div id="sortList"></div></div>
+        <div class="row-flex" style="margin-top:12px"><button class="primary" id="sortSaveOrder">保存顺序</button><span class="tag" id="sortInfo">—</span></div>
       </section>
 
       <!-- 媒体信息 -->
@@ -473,6 +468,7 @@ function show(sec){
   else if(sec==='media') loadLibraries();
   else if(sec==='files') loadFiles($('#filePath').value||'/');
   else if(sec==='scrape') loadScrape();
+  else if(sec==='sort') loadSort();
   else if(sec==='probe') loadProbe();
   else if(sec==='users') loadUsers();
   else if(sec==='enh-set') loadEnhancements();
@@ -612,9 +608,30 @@ if($('#scanConc')) $('#scanConc').addEventListener('change',async()=>{ const v=p
 $('#startScanBtn').onclick=async()=>{ try{ await api('/admin/scan',{method:'PUT',body:'{"Paused":false}'}); await api('/admin/libraries/scan-all',{method:'POST',body:'{}'}); alert('已开始扫描'); }catch(e){alert('失败：'+e.message)} };
 $('#refreshAllBtn').onclick=async()=>{ try{ await api('/admin/libraries/scan-all',{method:'POST',body:'{}'}); alert('已开始刷新全部'); }catch(e){alert('失败：'+e.message)} };
 $('#stopScanBtn').onclick=async()=>{ try{ await api('/admin/scan',{method:'PUT',body:'{"Paused":true}'}); alert('已停止扫描'); }catch(e){alert('失败：'+e.message)} };
-$('#sortSave').onclick=()=>{ localStorage.setItem('ge_sort',$('#sortSel').value); $('#sortInfo').textContent='已保存：'+$('#sortSel').value; };
-$('#sortSel').value=localStorage.getItem('ge_sort')||'SortName';
-
+/* ---------- 媒体库排序 ---------- */
+let sortLibs=[];
+async function loadSort(){
+  try{ const res=await api('/admin/libraries'); sortLibs=(res.Items||[]).map(l=>({id:l.Id,name:l.Name})); renderSort(); }
+  catch(e){ $('#sortList').innerHTML='<div class="empty">加载失败：'+esc(e.message)+'</div>'; }
+}
+function renderSort(){
+  const box=$('#sortList');
+  box.innerHTML=sortLibs.map((l,i)=>'<div class="sortrow" draggable="true" data-i="'+i+'"><span class="handle">≡</span><span class="sname">'+esc(l.name)+'</span></div>').join('')||'<div class="empty">暂无媒体库</div>';
+  bindSort();
+}
+function bindSort(){
+  const rows=[...document.querySelectorAll('#sortList .sortrow')]; let dragIdx=null;
+  rows.forEach(r=>{
+    r.addEventListener('dragstart',()=>{ dragIdx=+r.dataset.i; r.classList.add('dragging'); });
+    r.addEventListener('dragend',()=>{ r.classList.remove('dragging'); rows.forEach(x=>x.classList.remove('over')); });
+    r.addEventListener('dragover',e=>{ e.preventDefault(); rows.forEach(x=>x.classList.remove('over')); r.classList.add('over'); });
+    r.addEventListener('drop',e=>{ e.preventDefault(); const target=+r.dataset.i; if(dragIdx==null||dragIdx===target)return; const moved=sortLibs.splice(dragIdx,1)[0]; sortLibs.splice(target,0,moved); renderSort(); dragIdx=null; });
+    r.addEventListener('touchstart',()=>{ dragIdx=+r.dataset.i; r.classList.add('dragging'); },{passive:true});
+    r.addEventListener('touchmove',e=>{ const t=e.touches[0]; const el=document.elementFromPoint(t.clientX,t.clientY); const row=el&&el.closest?el.closest('.sortrow'):null; if(row){ rows.forEach(x=>x.classList.remove('over')); row.classList.add('over'); } },{passive:true});
+    r.addEventListener('touchend',()=>{ const over=document.querySelector('#sortList .sortrow.over'); if(over&&dragIdx!=null){ const target=+over.dataset.i; if(dragIdx!==target){ const moved=sortLibs.splice(dragIdx,1)[0]; sortLibs.splice(target,0,moved); renderSort(); } } dragIdx=null; });
+  });
+}
+$('#sortSaveOrder').onclick=async()=>{ try{ await api('/admin/libraries/order',{method:'PUT',body:JSON.stringify({Ids:sortLibs.map(l=>l.id)})}); $('#sortInfo').textContent='已保存'; }catch(e){alert('保存失败：'+e.message)} };
 /* ---------- 文件管理 ---------- */
 function parentPath(p){ if(!p||p==='/')return '/'; const t=p.replace(/\/+$/,''); const i=t.lastIndexOf('/'); return i<=0?'/':t.slice(0,i); }
 function humanSize(n){ if(!n)return '0B'; const u=['B','KB','MB','GB','TB']; let i=0,x=n; while(x>=1024&&i<u.length-1){x/=1024;i++;} return x.toFixed(i?1:0)+u[i]; }

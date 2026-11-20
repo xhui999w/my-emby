@@ -5,8 +5,42 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
+
+// orderedLibraries 按已保存的排序返回媒体库（未在顺序内的按名称排在最后）。
+func (s *Store) orderedLibraries() []*Library {
+	s.mu.RLock()
+	libs := make([]*Library, 0, len(s.Libraries))
+	for _, l := range s.Libraries {
+		libs = append(libs, l)
+	}
+	raw := s.Settings["library_order"]
+	s.mu.RUnlock()
+	idx := map[string]*Library{}
+	for _, l := range libs {
+		idx[l.Id] = l
+	}
+	out := make([]*Library, 0, len(libs))
+	used := map[string]bool{}
+	if strings.TrimSpace(raw) != "" {
+		for _, id := range strings.Split(raw, ",") {
+			if l, ok := idx[id]; ok && !used[id] {
+				out = append(out, l)
+				used[id] = true
+			}
+		}
+	}
+	rest := make([]*Library, 0)
+	for _, l := range libs {
+		if !used[l.Id] {
+			rest = append(rest, l)
+		}
+	}
+	sort.Slice(rest, func(i, j int) bool { return rest[i].Name < rest[j].Name })
+	return append(out, rest...)
+}
 
 // handleLibraries 媒体库管理：列表 / 新建 / 修改 / 删除 / 单库扫描 / 刷新全部 / 扫描并发。
 // 路径前缀 /admin/libraries
@@ -46,6 +80,21 @@ func (a *App) handleLibraries(w http.ResponseWriter, r *http.Request, u *User) {
 			go a.store.Save()
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"ScanConcurrency": a.settingInt("scan_concurrency", 2)})
+		return
+	}
+	if rest[0] == "order" {
+		if r.Method == http.MethodPut {
+			var b struct{ Ids []string }
+			_ = json.NewDecoder(r.Body).Decode(&b)
+			a.store.setSetting("library_order", strings.Join(b.Ids, ","))
+			go a.store.Save()
+			a.store.addActivity("媒体库排序", "更新媒体库显示顺序", "LibraryOrder", "Information")
+		}
+		ids := []string{}
+		for _, l := range a.store.orderedLibraries() {
+			ids = append(ids, l.Id)
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"Ids": ids})
 		return
 	}
 	id := rest[0]
@@ -100,8 +149,10 @@ func (a *App) listLibraries(w http.ResponseWriter) {
 			c.samples = append(c.samples, it.Id)
 		}
 	}
-	out := make([]map[string]any, 0, len(a.store.Libraries))
-	for _, l := range a.store.Libraries {
+	a.store.mu.RUnlock()
+	libs := a.store.orderedLibraries()
+	out := make([]map[string]any, 0, len(libs))
+	for _, l := range libs {
 		c := counts[l.Id]
 		mv, ep, se := 0, 0, 0
 		samples := []string{}
@@ -115,7 +166,6 @@ func (a *App) listLibraries(w http.ResponseWriter) {
 			"SampleIds": samples, "Status": "ready",
 		})
 	}
-	a.store.mu.RUnlock()
 	writeJSON(w, http.StatusOK, map[string]any{
 		"Items": out, "TotalRecordCount": len(out),
 		"ScanConcurrency": a.settingInt("scan_concurrency", 2),
