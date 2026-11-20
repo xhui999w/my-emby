@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: go-emby-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-goemby}
+    volumes:
+      - "${POSTGRES_DATA_PATH:-./postgres-data}:/var/lib/postgresql/data"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-goemby}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  go-emby:
+    build: .
+    image: go-emby:local
+    container_name: go-emby
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${HTTP_PORT:-8097}:8097"
+    environment:
+      HTTP_PORT: "8097"
+      MEDIA_ROOTS: "${MEDIA_ROOTS:-/media}"
+      APP_DATA_PATH: "/app/data"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-}"
+      SERVER_NAME: "${SERVER_NAME:-Go-Emby}"
+      PUBLIC_URL: "${PUBLIC_URL:-}"
+      BOOTSTRAP_API_KEY: "${BOOTSTRAP_API_KEY:-}"
+      # PostgreSQL（留空则回退 JSON 文件存储）
+      DATABASE_URL: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-goemby}?sslmode=disable"
+      # TMDB 元数据刮削
+      TMDB_API_KEY: "${TMDB_API_KEY:-}"
+      TMDB_LANGUAGE: "${TMDB_LANGUAGE:-zh-CN}"
+      # Xiaoya / OpenList(WebDAV) STRM 同步
+      XIAOYA_SOURCE: "${XIAOYA_SOURCE:-}"
+      XIAOYA_TARGET: "/app/data/strm"
+      XIAOYA_USERNAME: "${XIAOYA_USERNAME:-dav}"
+      XIAOYA_PASSWORD: "${XIAOYA_PASSWORD:-}"
+      XIAOYA_INTERVAL_MIN: "${XIAOYA_INTERVAL_MIN:-0}"
+      XIAOYA_PUBLIC_BASE: "${XIAOYA_PUBLIC_BASE:-}"
+      # 授权（免费模式留空）
+      LICENSE_KEY: "${LICENSE_KEY:-}"
+      LICENSE_SERVER_URL: "${LICENSE_SERVER_URL:-https://tl.macacaaca.top}"
+      TZ: "${TZ:-Asia/Shanghai}"
+    volumes:
+      - "${MEDIA_PATH:-./media}:/media:rw"
+      - "${APP_DATA_PATH:-./app-data}:/app/data:rw"
+      - "${STRM_PATH:-./app-data/strm}:/app/data/strm:rw"
