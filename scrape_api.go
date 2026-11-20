@@ -306,12 +306,14 @@ func (a *App) scrapeConfig(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		writeJSON(w, http.StatusOK, map[string]any{
-			"Enabled":   a.store.settingBool("scrape_enabled", true),
-			"Auto":      a.store.settingBool("scrape_auto", true),
-			"Manual":    a.store.settingBool("scrape_manual", true),
-			"Providers": providers,
-			"Available": avail,
-			"Overwrite": a.scrapeOverwrite(),
+			"Enabled":     a.store.settingBool("scrape_enabled", true),
+			"Auto":        a.store.settingBool("scrape_auto", true),
+			"Manual":      a.store.settingBool("scrape_manual", true),
+			"AutoRefresh": a.store.settingBool("scrape_autorefresh", true),
+			"WatchLibs":   splitCSV(a.store.setting("scrape_watch_libs")),
+			"Providers":   providers,
+			"Available":   avail,
+			"Overwrite":   a.scrapeOverwrite(),
 		})
 		return
 	}
@@ -320,11 +322,13 @@ func (a *App) scrapeConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Enabled   *bool
-		Auto      *bool
-		Manual    *bool
-		Providers *[]string
-		Overwrite *string
+		Enabled     *bool
+		Auto        *bool
+		Manual      *bool
+		AutoRefresh *bool
+		WatchLibs   *[]string
+		Providers   *[]string
+		Overwrite   *string
 	}
 	if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
 		writeErr(w, http.StatusBadRequest, "请求体无效")
@@ -338,6 +342,12 @@ func (a *App) scrapeConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	if b.Manual != nil {
 		a.store.setSetting("scrape_manual", boolStr(*b.Manual))
+	}
+	if b.AutoRefresh != nil {
+		a.store.setSetting("scrape_autorefresh", boolStr(*b.AutoRefresh))
+	}
+	if b.WatchLibs != nil {
+		a.store.setSetting("scrape_watch_libs", strings.Join(*b.WatchLibs, ","))
 	}
 	if b.Providers != nil {
 		a.store.setSetting("scrape_providers", strings.Join(*b.Providers, ","))
@@ -438,4 +448,14 @@ func (a *App) scrapeMediaConfigAPI(w http.ResponseWriter, r *http.Request) {
 	go a.store.Save()
 	a.store.addActivity("刮削设置", "更新分类刮削明细", "ScrapeConfig", "Information")
 	writeJSON(w, http.StatusOK, a.scrapeMediaConfig())
+}
+
+func splitCSV(s string) []string {
+	out := []string{}
+	for _, p := range strings.Split(s, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }

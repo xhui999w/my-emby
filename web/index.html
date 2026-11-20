@@ -252,7 +252,7 @@
         <p class="muted" style="margin:-8px 0 16px">扫描媒体库文件，获取或输出元数据与图片</p>
         <div class="panel">
           <div class="setrow"><div class="sc-open" style="cursor:pointer"><div class="settitle">开启刮削 ＞</div><div class="setdesc">处理当前媒体库索引中的媒体</div></div><label class="switch"><input type="checkbox" id="scEnabled"><span></span></label></div>
-          <div class="setrow"><div><div class="settitle">自动刮削</div><div class="setdesc">监控新增内容；关闭后停止并清理待处理任务</div></div><label class="switch"><input type="checkbox" id="scAuto"><span></span></label></div>
+          <div class="setrow"><div class="sc-open-auto" style="cursor:pointer"><div class="settitle">自动刮削 ＞</div><div class="setdesc">监控新增内容；关闭后停止并清理待处理任务</div></div><label class="switch"><input type="checkbox" id="scAuto"><span></span></label></div>
           <div class="setrow"><div><div class="settitle">手动刮削</div><div class="setdesc">按当前配置执行手动刮削任务</div></div><label class="switch"><input type="checkbox" id="scManual"><span></span></label></div>
         </div>
         <div class="panel">
@@ -444,6 +444,23 @@
     </div>
     <div id="scmBody"></div>
     <div class="row-flex" style="justify-content:flex-end;margin-top:16px"><button id="scmCancel">取消</button><button class="primary" id="scmSave">保存</button></div>
+  </div>
+</div>
+
+<!-- 自动刮削：实时监控 -->
+<div class="dialog" id="autoDlg">
+  <div class="box" style="width:560px">
+    <div class="row-flex" style="justify-content:space-between"><h3 style="margin:0">实时监控</h3><button id="autoBack">返回</button></div>
+    <div class="setrow" style="margin-top:10px"><div><div class="settitle">实时监控</div><div class="setdesc">关闭清理等待任务，当前任务完成后退出；暂停保留进度</div></div><label class="switch"><input type="checkbox" id="auLive"><span></span></label></div>
+    <div class="setrow"><div><div class="settitle">自动刷新</div><div class="setdesc">刮削完成后刷新本地媒体索引</div></div><label class="switch"><input type="checkbox" id="auRefresh"><span></span></label></div>
+    <div class="setrow"><div style="cursor:pointer" id="auDirs"><div class="settitle">监控目录 ＞</div><div class="setdesc">选择实时监控刮削的媒体库</div></div><span class="tag" id="auDirCount">已选择 0 个</span></div>
+  </div>
+</div>
+<div class="dialog" id="watchLibDlg">
+  <div class="box" style="width:460px">
+    <h3>选择监控目录</h3>
+    <div id="watchLibList" style="max-height:360px;overflow:auto"></div>
+    <div class="row-flex" style="justify-content:flex-end;margin-top:14px"><button id="watchLibCancel">取消</button><button class="primary" id="watchLibOk">确定</button></div>
   </div>
 </div>
 
@@ -750,6 +767,30 @@ $('#scmSave').onclick=async()=>{
   try{ await api('/admin/scrape/media-config',{method:'PUT',body:JSON.stringify(out)}); $('#scMediaDlg').classList.remove('show'); alert('已保存'); }catch(e){ alert('保存失败：'+e.message); }
 };
 document.querySelector('.sc-open').onclick=openScrapeMedia;
+
+/* 自动刮削：实时监控弹窗 */
+let auWatch=[];
+async function openAuto(){
+  const cfg=await api('/admin/scrape/config');
+  $('#auLive').checked=!!cfg.Auto; $('#auRefresh').checked=!!cfg.AutoRefresh; auWatch=(cfg.WatchLibs||[]).slice();
+  $('#auDirCount').textContent='已选择 '+auWatch.length+' 个';
+  $('#autoDlg').classList.add('show');
+}
+$('#autoBack').onclick=()=>$('#autoDlg').classList.remove('show');
+$('#auLive').onchange=()=>api('/admin/scrape/config',{method:'PUT',body:JSON.stringify({Auto:$('#auLive').checked})});
+$('#auRefresh').onchange=()=>api('/admin/scrape/config',{method:'PUT',body:JSON.stringify({AutoRefresh:$('#auRefresh').checked})});
+document.querySelector('.sc-open-auto').onclick=openAuto;
+$('#auDirs').onclick=async()=>{
+  try{ const res=await api('/admin/libraries'); const libs=res.Items||[];
+    $('#watchLibList').innerHTML=libs.map(l=>'<label class="chk" style="display:flex;align-items:center;gap:8px;padding:8px 4px"><input type="checkbox" data-wl="'+l.Id+'" '+(auWatch.includes(l.Id)?'checked':'')+'> '+esc(l.Name)+'</label>').join('')||'<div class="empty">暂无媒体库</div>';
+    $('#watchLibDlg').classList.add('show');
+  }catch(e){ alert(e.message); }
+};
+$('#watchLibCancel').onclick=()=>$('#watchLibDlg').classList.remove('show');
+$('#watchLibOk').onclick=async()=>{
+  const ids=[...document.querySelectorAll('#watchLibList [data-wl]')].filter(e=>e.checked).map(e=>e.dataset.wl);
+  try{ await api('/admin/scrape/config',{method:'PUT',body:JSON.stringify({WatchLibs:ids})}); auWatch=ids; $('#auDirCount').textContent='已选择 '+ids.length+' 个'; $('#watchLibDlg').classList.remove('show'); }catch(e){ alert(e.message); }
+};
 setInterval(()=>{ if(state.sec==='scrape'){ refreshScrapeStatus().catch(()=>{}); } if(state.sec==='probe'){ refreshProbeStatus().catch(()=>{}); } }, 3000);
 let prCfg={};
 async function loadProbe(){
