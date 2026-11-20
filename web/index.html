@@ -102,6 +102,20 @@
   .dirlist{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:10px}
   .dirrow{padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;color:var(--fg)}
   .dirrow:hover{background:#23272f}
+  /* 刮削管理 */
+  .setrow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+  .setrow:last-child{border-bottom:0}
+  .settitle{font-size:14px;font-weight:600}
+  .setdesc{color:var(--muted);font-size:12px;margin-top:3px}
+  .switch{position:relative;display:inline-block;width:46px;height:26px;flex:0 0 auto}
+  .switch input{display:none}
+  .switch span{position:absolute;inset:0;background:#3a3f4b;border-radius:999px;transition:.15s;cursor:pointer}
+  .switch span:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s}
+  .switch input:checked + span{background:#22c55e}
+  .switch input:checked + span:before{transform:translateX(20px)}
+  .provider{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-size:13px;margin-left:6px}
+  .provider.on{border-color:var(--accent);background:#16233b}
+  .provider.off{opacity:.45}
 </style>
 </head>
 <body>
@@ -229,12 +243,32 @@
       <!-- 刮削管理 -->
       <section id="sec-scrape" class="pane hidden">
         <h2>刮削管理</h2>
+        <p class="muted" style="margin:-8px 0 16px">扫描媒体库文件，获取或输出元数据与图片</p>
         <div class="panel">
-          <div class="row-flex" style="margin-bottom:10px">
-            <button class="primary" data-op="scrape">立即刮削</button>
-            <span class="tag" id="scrapeInfo">—</span>
+          <div class="setrow"><div><div class="settitle">开启刮削</div><div class="setdesc">处理当前媒体库索引中的媒体</div></div><label class="switch"><input type="checkbox" id="scEnabled"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">自动刮削</div><div class="setdesc">监控新增内容；关闭后停止并清理待处理任务</div></div><label class="switch"><input type="checkbox" id="scAuto"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">手动刮削</div><div class="setdesc">按当前配置执行手动刮削任务</div></div><label class="switch"><input type="checkbox" id="scManual"><span></span></label></div>
+        </div>
+        <div class="panel">
+          <div class="setrow"><div><div class="settitle">刮削器（至少选择一个）</div><div class="setdesc">选择元数据与图片来源</div></div><div id="scProviders"></div></div>
+          <div class="setrow"><div><div class="settitle">覆盖策略</div><div class="setdesc">设置已有 NFO 和图片的处理方式</div></div>
+            <select id="scOverwrite" style="min-width:160px"><option value="skip">跳过已有文件</option><option value="missing">只补缺失</option><option value="overwrite">全部覆盖</option></select>
           </div>
-          <p class="muted">刮削源：TMDB（优先）+ 豆瓣（兜底）。在 `.env` 配置 `TMDB_API_KEY` / `DOUBAN_ENABLED=true` 后生效。</p>
+        </div>
+        <div class="panel">
+          <h3>当前任务</h3>
+          <div id="scTaskState" class="muted" style="margin-bottom:12px">空闲</div>
+          <div class="row-flex">
+            <button id="scScan">扫描</button>
+            <button class="primary" id="scStart" style="background:#c0392b;border-color:#c0392b">开始</button>
+            <button id="scRetry">重试</button>
+            <button id="scPause">暂停</button>
+            <button id="scStop">停止</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>任务日志 <span class="tag" id="scLogInfo"></span></h3>
+          <table><thead><tr><th>时间</th><th>事件</th><th>详情</th></tr></thead><tbody id="scLogs"></tbody></table>
         </div>
       </section>
 
@@ -604,7 +638,41 @@ async function loadFiles(path){
 $('#fileListBtn').onclick=()=>loadFiles($('#filePath').value||'/');
 
 /* ---------- 刮削 / 探测 / TMDB ---------- */
-async function loadScrape(){ try{ const s=await loadStats(); $('#scrapeInfo').textContent='TMDB:'+(s.tmdbEnabled?'开':'关')+' · 豆瓣:'+(s.doubanEnabled?'开':'关'); }catch(e){} }
+let scProvidersSel=[];
+async function loadScrape(){
+  try{
+    const cfg=await api('/admin/scrape/config');
+    $('#scEnabled').checked=!!cfg.Enabled; $('#scAuto').checked=!!cfg.Auto; $('#scManual').checked=!!cfg.Manual;
+    $('#scOverwrite').value=cfg.Overwrite||'skip';
+    scProvidersSel=(cfg.Providers||[]).slice();
+    renderProviders(cfg.Available||{});
+    await refreshScrapeStatus();
+  }catch(e){ $('#scTaskState').textContent='加载失败：'+e.message; }
+}
+function renderProviders(avail){
+  const box=$('#scProviders'); const names=Object.keys(avail); if(!names.length){ box.innerHTML='<span class="tag">未配置刮削源</span>'; return; }
+  box.innerHTML=names.map(n=>{ const on=scProvidersSel.includes(n); const label=n==='tmdb'?'TMDB':(n==='douban'?'豆瓣':n); return '<span class="provider '+(on?'on':'off')+'" data-p="'+n+'">'+(avail[n]?'●':'○')+' '+label+'</span>'; }).join('');
+  box.querySelectorAll('[data-p]').forEach(el=>el.onclick=async()=>{ const n=el.dataset.p; if(scProvidersSel.includes(n)){ if(scProvidersSel.length<=1){alert('至少保留一个刮削器');return;} scProvidersSel=scProvidersSel.filter(x=>x!==n);} else scProvidersSel.push(n); try{ await api('/admin/scrape/config',{method:'PUT',body:JSON.stringify({Providers:scProvidersSel})}); loadScrape(); }catch(e){alert(e.message)} });
+}
+async function refreshScrapeStatus(){
+  const st=await api('/admin/scrape/status');
+  const map={idle:'空闲',running:'运行中',paused:'已暂停'};
+  let txt=map[st.State]||st.State; if(st.State!=='idle'){ txt+=' · '+st.Done+'/'+st.Total; } if(st.Message) txt+=' · '+st.Message;
+  $('#scTaskState').textContent=txt;
+  const logs=st.Logs||[]; $('#scLogInfo').textContent='最近 '+logs.length+' 条';
+  $('#scLogs').innerHTML=logs.length?logs.map(l=>'<tr><td class="muted">'+esc((l.Date||'').replace('T',' ').slice(0,19))+'</td><td>'+esc(l.Name)+'</td><td class="muted">'+esc(l.ShortOverview||'')+'</td></tr>').join(''):'<tr><td colspan="3" class="empty">暂无任务摘要</td></tr>';
+}
+function scSave(patch){ return api('/admin/scrape/config',{method:'PUT',body:JSON.stringify(patch)}); }
+$('#scEnabled').onchange=()=>scSave({Enabled:$('#scEnabled').checked});
+$('#scAuto').onchange=()=>scSave({Auto:$('#scAuto').checked});
+$('#scManual').onchange=()=>scSave({Manual:$('#scManual').checked});
+$('#scOverwrite').onchange=()=>scSave({Overwrite:$('#scOverwrite').value});
+$('#scStart').onclick=async()=>{ try{ await api('/admin/scrape/start',{method:'POST',body:'{}'}); refreshScrapeStatus(); }catch(e){alert('开始失败：'+e.message)} };
+$('#scStop').onclick=async()=>{ try{ await api('/admin/scrape/stop',{method:'POST',body:'{}'}); refreshScrapeStatus(); }catch(e){alert(e.message)} };
+$('#scRetry').onclick=async()=>{ try{ await api('/admin/scrape/retry',{method:'POST',body:'{}'}); refreshScrapeStatus(); }catch(e){alert(e.message)} };
+$('#scPause').onclick=async()=>{ try{ const st=await api('/admin/scrape/status'); await api('/admin/scrape/'+(st.State==='paused'?'resume':'pause'),{method:'POST',body:'{}'}); refreshScrapeStatus(); }catch(e){alert(e.message)} };
+$('#scScan').onclick=async()=>{ try{ await api('/admin/libraries/scan-all',{method:'POST',body:'{}'}); alert('已开始扫描媒体库'); }catch(e){alert(e.message)} };
+setInterval(()=>{ if(state.sec==='scrape'){ refreshScrapeStatus().catch(()=>{}); } }, 3000);
 async function loadProbe(){ try{ const s=await loadStats(); $('#probeInfo').textContent='已探测 '+(s.probedCount||0)+' / '+(s.movies+s.episodes)+' · ffprobe:'+(s.probeEnabled?'可用':'不可用'); }catch(e){} }
 async function loadTmdb(){ try{ const s=await loadStats(); $('#tmdbInfo').textContent='TMDB:'+(s.tmdbEnabled?'已启用':'未配置')+' ，豆瓣:'+(s.doubanEnabled?'已启用':'未启用'); }catch(e){} }
 

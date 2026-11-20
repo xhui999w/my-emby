@@ -57,8 +57,8 @@ func (a *App) startScanWorker() {
 				"LibraryScan", "Information")
 			// 全量扫描后顺带做刮削与探测
 			if libID == "" {
-				if a.hasScrapers() {
-					a.scrapeAll()
+				if a.scrapeAutoEnabled() && a.hasScrapers() {
+					a.startScrapeJob(false)
 				}
 				if a.hasProbe() {
 					a.probeAll()
