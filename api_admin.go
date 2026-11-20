@@ -121,8 +121,25 @@ func (a *App) handleAdminStats(w http.ResponseWriter, r *http.Request, u *User) 
 			probed++
 		}
 	}
+	now := time.Now().Unix()
+	playing := make([]map[string]any, 0)
+	for _, sess := range a.store.Sessions {
+		if sess.ItemId == "" || now-sess.LastActivity > 300 {
+			continue
+		}
+		name := ""
+		if it, ok := a.store.Items[sess.ItemId]; ok {
+			name = it.Name
+		}
+		uname := ""
+		if usr, ok := a.store.Users[sess.UserId]; ok {
+			uname = usr.Name
+		}
+		playing = append(playing, map[string]any{"ItemId": sess.ItemId, "Name": name, "User": uname, "Device": sess.DeviceName, "Client": sess.Client, "PositionTicks": sess.PositionTicks})
+	}
 	activity := len(a.store.Activity)
 	a.store.mu.RUnlock()
+	uptime := int(time.Since(a.startAt).Seconds())
 	writeJSON(w, http.StatusOK, map[string]any{
 		"serverId": a.store.ServerId, "serverName": a.effectiveServerName(),
 		"version": serverVersion, "users": users, "libraries": libs,
@@ -143,6 +160,13 @@ func (a *App) handleAdminStats(w http.ResponseWriter, r *http.Request, u *User) 
 		"xiaoyaConfigured":  a.cfg.XiaoyaSource != "",
 		"xiaoyaIntervalMin": a.cfg.XiaoyaInterval,
 		"license":           a.licenseStatus(),
+		"mediaTotal":        movies + episodes,
+		"cpuPercent":        round1(a.cpuPercent()),
+		"memMiB":            round1(a.memMiB()),
+		"uptimeSeconds":     uptime,
+		"nowPlaying":        len(playing),
+		"playing":           playing,
+		"goroutines":        goroutines(),
 	})
 }
 

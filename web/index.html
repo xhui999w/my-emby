@@ -138,7 +138,12 @@
       <!-- 控制台 -->
       <section id="sec-dashboard" class="pane hidden">
         <h2>控制台</h2>
+        <div id="dashStatus" class="muted" style="margin-bottom:16px">—</div>
         <div class="stats" id="dashStats"></div>
+        <div class="panel">
+          <h3>正在播放 <span class="tag" id="npCount"></span></h3>
+          <table><thead><tr><th>媒体</th><th>用户</th><th>设备</th><th>进度</th></tr></thead><tbody id="npBody"></tbody></table>
+        </div>
         <div class="panel">
           <h3>快捷操作</h3>
           <div class="row-flex">
@@ -421,12 +426,30 @@ async function loadStats(){ return api('/admin/stats'); }
 async function loadDashboard(){
   try{
     const s=await loadStats();
-    $('#dashStats').innerHTML=[['电影',s.movies],['剧集',s.episodes],['剧',s.series],['用户',s.users],['媒体库',s.libraries],['STRM',s.strmCount||0]].map(([l,n])=>'<div class="stat"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>').join('');
+    const up=s.uptimeSeconds||0; const dd=Math.floor(up/86400), hh=Math.floor((up%86400)/3600);
+    const upt=dd+'天 '+hh+'小时';
+    const cards=[
+      ['电影', s.movies, ''],
+      ['用户', s.users, ''],
+      ['电视剧', s.series, ''],
+      ['剧集', s.episodes, ''],
+      ['媒体库', s.libraries, ''],
+      ['媒体总数', (s.mediaTotal!=null? s.mediaTotal : (s.movies+s.episodes)), ''],
+      ['CPU', (s.cpuPercent>=0 ? (s.cpuPercent||0).toFixed(1)+'%' : '—'), '容器 CPU'],
+      ['容器内存', Math.round(s.memMiB||0)+' MiB', 'Docker 口径 · 含可回收缓存'],
+      ['运行时长', upt, ''],
+      ['正在播放', s.nowPlaying||0, '']
+    ];
+    $('#dashStats').innerHTML=cards.map(([l,v,sub])=>'<div class="stat"><div class="l">'+esc(l)+'</div><div class="n">'+esc(String(v))+'</div>'+(sub?'<div class="l" style="margin-top:2px;font-size:11px">'+esc(sub)+'</div>':'')+'</div>').join('');
+    $('#dashStatus').innerHTML='<span style="color:#22c55e">●</span> 服务正常 · 运行 '+esc(upt)+' · goroutines '+(s.goroutines||0);
     $('#dashInfo').textContent='存储:'+(s.backend||'-')+' · 授权:'+((s.license||{}).mode||'-');
+    const np=s.playing||[]; $('#npCount').textContent=String(s.nowPlaying||0);
+    $('#npBody').innerHTML=np.length?np.map(p=>'<tr><td>'+esc(p.Name)+'</td><td>'+esc(p.User)+'</td><td>'+esc(p.Device||p.Client||'')+'</td><td>'+ticks(p.PositionTicks)+'</td></tr>').join(''):'<tr><td colspan="4" class="empty">当前没有正在播放</td></tr>';
     const act=await api('/admin/logs?type=activity&limit=15');
     $('#dashActivity').innerHTML=(act.Items||[]).map(a=>'<tr><td class="muted">'+esc((a.Date||'').replace('T',' ').slice(0,19))+'</td><td>'+esc(a.Name)+'</td><td class="muted">'+esc(a.ShortOverview||'')+'</td></tr>').join('')||'<tr><td colspan="3" class="empty">暂无</td></tr>';
   }catch(e){ $('#dashStats').innerHTML='<div class="empty">加载失败：'+esc(e.message)+'</div>'; }
 }
+function ticks(t){ t=Math.floor((t||0)/10000000); const h=Math.floor(t/3600),m=Math.floor((t%3600)/60),s=t%60; return (h?h+':':'')+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); }
 
 /* ---------- 媒体管理 ---------- */
 async function loadMedia(){

@@ -23,13 +23,27 @@ type App struct {
 	// 文件监听快照
 	watchMu   sync.Mutex
 	watchSnap map[string]fileStamp
+
+	// 运行指标
+	startAt   time.Time
+	cpuMu     sync.Mutex
+	cpuLast   float64
+	cpuLastAt time.Time
 }
 
 func main() {
 	cfg := loadConfig()
 	store := NewStore(cfg)
-	app := &App{cfg: cfg, store: store, httpClient: &http.Client{Timeout: 60 * time.Second}, license: newLicenseClient(cfg)}
+	app := &App{cfg: cfg, store: store, httpClient: &http.Client{Timeout: 60 * time.Second}, license: newLicenseClient(cfg), startAt: time.Now()}
 	go app.license.run(context.Background())
+	// 后台采样进程 CPU，保证控制台 CPU% 有基线
+	go func() {
+		t := time.NewTicker(3 * time.Second)
+		defer t.Stop()
+		for range t.C {
+			app.cpuPercent()
+		}
+	}()
 
 	// 扫描 worker + 实时监听；初次全量扫描通过队列触发（随后自动刮削/探测）。
 	app.startScanWorker()
