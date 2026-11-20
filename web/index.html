@@ -3,76 +3,80 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Go-Emby · 媒体库</title>
+<title>go-emby · 管理台</title>
 <style>
   :root{
-    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2a2f3a;
-    --fg:#e8ebf0; --muted:#9aa4b2; --accent:#3f8cff; --accent2:#22c55e; --danger:#ef4444;
+    --bg:#0e1013; --panel:#15181e; --panel2:#1b1f27; --line:#272c36;
+    --fg:#e8ebf0; --muted:#98a2b3; --accent:#3f8cff; --danger:#ef4444; --ok:#22c55e;
   }
   *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
-    background:var(--bg);color:var(--fg)}
-  a{color:var(--accent);text-decoration:none}
-  header{display:flex;align-items:center;gap:16px;padding:14px 22px;background:linear-gradient(90deg,#141821,#0f1115);
-    border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
-  header .brand{font-weight:700;font-size:18px;letter-spacing:.5px}
-  header .brand span{color:var(--accent)}
-  .tabs{display:flex;gap:8px;margin-left:12px}
-  .tab{padding:7px 14px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:14px}
-  .tab.active{background:var(--panel2);color:var(--fg)}
-  .spacer{flex:1}
-  .who{color:var(--muted);font-size:13px}
-  button{cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--fg);
-    padding:8px 14px;border-radius:8px;font-size:14px}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--fg)}
+  a{color:inherit;text-decoration:none}
+  button{cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:8px 13px;border-radius:8px;font-size:14px}
   button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
   button.ghost{background:transparent}
-  button.danger{background:transparent;border-color:#5b2a2a;color:#ff8f8f}
-  input{background:#0c0e12;border:1px solid var(--line);color:var(--fg);padding:9px 12px;border-radius:8px;font-size:14px;outline:none}
+  button.danger{background:transparent;border-color:#5b2a2a;color:#ff9b9b}
+  input,select{background:#0b0d11;border:1px solid var(--line);color:var(--fg);padding:8px 11px;border-radius:8px;font-size:14px;outline:none}
   input:focus{border-color:var(--accent)}
-  main{padding:22px}
+  .hidden{display:none!important}
+  /* topbar */
+  .topbar{display:flex;align-items:center;gap:10px;height:56px;padding:0 18px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#14181f,#0e1013);position:sticky;top:0;z-index:30}
+  .brand{font-weight:700;font-size:18px;letter-spacing:.5px}
+  .brand span{color:var(--accent)}
+  .spacer{flex:1}
+  .iconbtn{width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:transparent;border:1px solid transparent;font-size:17px;color:var(--muted)}
+  .iconbtn:hover{background:var(--panel2);color:var(--fg)}
+  .who{color:var(--muted);font-size:13px;margin:0 6px}
+  /* shell */
+  .shell{display:flex;min-height:calc(100vh - 56px)}
+  .sidebar{width:236px;flex:0 0 236px;border-right:1px solid var(--line);padding:14px 10px;background:#0c0e12}
+  .sidebar .nav{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;color:var(--muted);font-size:14px;cursor:pointer;margin-bottom:3px}
+  .sidebar .nav:hover{background:var(--panel2);color:var(--fg)}
+  .sidebar .nav.active{background:#23272f;color:#fff}
+  .sidebar .sub a{padding-left:32px;font-size:13px}
+  .content{flex:1;padding:22px;min-width:0}
+  .pane{max-width:1180px}
+  h2{margin:0 0 18px;font-size:20px}
+  h3{margin:0 0 12px;font-size:15px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:18px}
+  .row-flex{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .tag{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--panel2);color:var(--muted)}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin-bottom:18px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .stat .n{font-size:26px;font-weight:700}
+  .stat .l{color:var(--muted);font-size:13px;margin-top:4px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+  th{color:var(--muted);font-weight:500;font-size:12px}
+  .muted{color:var(--muted)}
+  /* poster grid */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;
-    transition:transform .12s ease,border-color .12s;display:flex;flex-direction:column}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .12s,border-color .12s}
   .card:hover{transform:translateY(-3px);border-color:var(--accent)}
   .card .poster{aspect-ratio:2/3;width:100%;object-fit:cover;background:#0b0d11;display:block}
   .card .meta{padding:9px 10px}
-  .card .tt{font-size:13px;font-weight:600;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .card .tt{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .card .sub{font-size:11px;color:var(--muted);margin-top:3px}
-  .empty{color:var(--muted);padding:40px;text-align:center}
+  .empty{color:var(--muted);padding:36px;text-align:center}
   /* login */
   .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center}
   .login{width:340px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px}
   .login h1{margin:0 0 4px;font-size:22px}
   .login p{margin:0 0 20px;color:var(--muted);font-size:13px}
   .login .row{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
-  .login input{width:100%}
-  .login button{width:100%;margin-top:6px}
+  .login input{width:100%} .login button{width:100%}
   .err{color:var(--danger);font-size:13px;min-height:18px}
-  /* detail modal */
+  /* modal */
   .modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:50;padding:24px}
   .modal-mask.show{display:flex}
-  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:900px;width:100%;
-    max-height:90vh;overflow:auto}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:900px;width:100%;max-height:90vh;overflow:auto;position:relative}
   .modal .head{display:flex;gap:18px;padding:20px}
   .modal .head img{width:160px;border-radius:10px;background:#0b0d11}
-  .modal .head .info{flex:1}
-  .modal h2{margin:0 0 8px}
-  .modal .desc{color:var(--muted);font-size:14px;line-height:1.6;margin:10px 0}
+  .modal .info{flex:1}
   .modal video{width:100%;background:#000;display:block;border-radius:0 0 16px 16px}
-  .close{position:absolute;right:26px;top:22px;font-size:22px;color:var(--muted);cursor:pointer}
-  /* admin */
-  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:22px}
-  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
-  .stat .n{font-size:26px;font-weight:700}
-  .stat .l{color:var(--muted);font-size:13px;margin-top:4px}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:20px}
-  .panel h3{margin:0 0 14px;font-size:16px}
-  table{width:100%;border-collapse:collapse;font-size:14px}
-  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line)}
-  th{color:var(--muted);font-weight:500;font-size:12px}
-  .row-flex{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .tag{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--panel2);color:var(--muted)}
-  .hidden{display:none!important}
+  .close{position:absolute;right:22px;top:18px;font-size:20px;color:var(--muted);cursor:pointer}
+  .code{background:#0b0d11;border:1px solid var(--line);border-radius:8px;padding:12px;font-family:ui-monospace,Consolas,monospace;font-size:12px;white-space:pre-wrap;color:#cdd6e3}
+  label.chk{display:flex;align-items:center;gap:6px;color:var(--fg);font-size:13px}
 </style>
 </head>
 <body>
@@ -80,8 +84,8 @@
 <!-- 登录 -->
 <div id="loginView" class="login-wrap">
   <div class="login">
-    <h1>Go-Emby <span style="color:var(--accent)">复刻版</span></h1>
-    <p>Emby 兼容媒体服务器 · 登录以进入媒体库</p>
+    <h1>go-<span style="color:var(--accent)">emby</span></h1>
+    <p>Emby 兼容媒体服务器 · 登录以进入</p>
     <div class="row">
       <input id="loginUser" placeholder="用户名" value="admin" autocomplete="username" />
       <input id="loginPass" type="password" placeholder="密码（默认 admin）" autocomplete="current-password" />
@@ -91,112 +95,234 @@
   </div>
 </div>
 
-<!-- 主界面 -->
+<!-- 主体 -->
 <div id="appView" class="hidden">
-  <header>
-    <div class="brand">Go-<span>Emby</span></div>
-    <div class="tabs">
-      <div class="tab active" data-tab="library">媒体库</div>
-      <div class="tab" data-tab="admin">后台管理</div>
-      <div class="tab" data-tab="files">文件</div>
-    </div>
+  <header class="topbar">
+    <div class="brand">go-<span>emby</span></div>
     <div class="spacer"></div>
-    <select id="langSel" style="background:#0c0e12;border:1px solid var(--line);color:var(--fg);padding:6px 8px;border-radius:8px;font-size:13px">
-      <option value="zh">中文</option><option value="en">English</option>
-    </select>
+    <button class="iconbtn" id="toLibrary" title="媒体库">▦</button>
+    <button class="iconbtn" id="toLogs" title="日志">🕘</button>
+    <button class="iconbtn" id="toAdmin" title="设置">⚙</button>
     <span class="who" id="who"></span>
     <button class="ghost" id="logoutBtn">退出</button>
   </header>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="nav" data-sec="library">‹ 返回影库</a>
+      <a class="nav" data-sec="dashboard">◎ 控制台</a>
+      <a class="nav" data-sec="toolbox">✷ 工具箱</a>
+      <a class="nav" data-sec="media">▤ 媒体管理</a>
+      <a class="nav" data-sec="files">▭ 文件管理</a>
+      <a class="nav" data-sec="scrape">✧ 刮削管理</a>
+      <a class="nav" data-sec="sort">≡ 媒体排序</a>
+      <a class="nav" data-sec="probe">ⓘ 媒体信息</a>
+      <a class="nav" data-sec="users">☺ 用户权限</a>
+      <a class="nav" id="enhToggle">✳ 增强功能 ▾</a>
+      <div class="sub" id="enhSub">
+        <a class="nav" data-sec="enh-set">设置 · 字幕 · TMDB · Bot · 片头片尾 · 代理</a>
+      </div>
+      <a class="nav" data-sec="api">‹/› API</a>
+    </aside>
 
-  <main>
-    <section id="tab-library">
-      <div class="row-flex" style="margin-bottom:16px">
-        <button class="primary" id="refreshBtn">刷新媒体库</button>
-        <input id="searchBox" placeholder="搜索片名…" style="width:260px" />
-        <span class="tag" id="countTag"></span>
-      </div>
-      <div id="wall" class="grid"></div>
-    </section>
+    <main class="content">
+      <!-- 媒体库 -->
+      <section id="sec-library" class="pane">
+        <div class="row-flex" style="margin-bottom:16px">
+          <button class="primary" id="refreshBtn">刷新媒体库</button>
+          <input id="searchBox" placeholder="搜索片名…" style="width:240px" />
+          <span class="tag" id="countTag"></span>
+        </div>
+        <div id="wall" class="grid"></div>
+      </section>
 
-    <section id="tab-admin" class="hidden">
-      <div class="stats" id="stats"></div>
-      <div class="panel">
-        <h3>运维</h3>
-        <div class="row-flex" style="margin-bottom:10px">
-          <button class="primary" id="scrapeBtn">TMDB 刮削</button>
-          <button id="syncBtn">Xiaoya / OpenList 同步</button>
-          <button id="probeBtn">媒体信息探测</button>
-          <span class="tag" id="opsInfo">—</span>
+      <!-- 控制台 -->
+      <section id="sec-dashboard" class="pane hidden">
+        <h2>控制台</h2>
+        <div class="stats" id="dashStats"></div>
+        <div class="panel">
+          <h3>快捷操作</h3>
+          <div class="row-flex">
+            <button class="primary" data-op="rescan">刷新媒体库</button>
+            <button data-op="probe">媒体信息探测</button>
+            <button data-op="scrape">刮削元数据</button>
+            <button data-op="sync">Xiaoya STRM 同步</button>
+            <span class="tag" id="dashInfo">—</span>
+          </div>
         </div>
-      </div>
-      <div class="panel">
-        <h3>增强设置</h3>
-        <div class="row-flex" style="flex-wrap:wrap;gap:12px;align-items:center">
-          <label>服务器名 <input id="setServerName" style="width:150px" /></label>
-          <label>扫描并发 <input id="setScanConc" type="number" min="1" max="64" style="width:80px" /></label>
-          <label>监听延时(s) <input id="setWatchDelay" type="number" min="10" style="width:90px" /></label>
-          <label><input type="checkbox" id="setProxyDebug" /> 代理调试</label>
-          <label><input type="checkbox" id="setFastCDN" /> FastCDN</label>
-          <label><input type="checkbox" id="setInitials" /> 首字母搜索</label>
-          <label><input type="checkbox" id="setWatch" /> 文件监听</label>
-          <label><input type="checkbox" id="setMergeFolder" /> 同库合并多版本</label>
-          <label><input type="checkbox" id="setMergeLibs" /> 跨库合并多版本</label>
-          <button class="primary" id="saveEnhBtn">保存设置</button>
-          <span class="tag" id="enhInfo">—</span>
+        <div class="panel"><h3>最近活动</h3><table><thead><tr><th>时间</th><th>事件</th><th>详情</th></tr></thead><tbody id="dashActivity"></tbody></table></div>
+      </section>
+
+      <!-- 工具箱 -->
+      <section id="sec-toolbox" class="pane hidden">
+        <h2>工具箱</h2>
+        <div class="panel">
+          <h3>维护操作</h3>
+          <div class="row-flex">
+            <button class="primary" data-op="rescan">全量重扫</button>
+            <button data-op="probe">探测全部媒体信息</button>
+            <button data-op="scrape">立即刮削</button>
+            <button data-op="sync">同步 Xiaoya/OpenList</button>
+          </div>
+          <p class="muted" style="margin-top:12px">任务在后台执行，可在「控制台 / 日志」查看进度。</p>
         </div>
-      </div>
-      <div class="panel">
-        <h3>用户管理</h3>
+      </section>
+
+      <!-- 媒体管理 -->
+      <section id="sec-media" class="pane hidden">
+        <h2>媒体管理</h2>
         <div class="row-flex" style="margin-bottom:12px">
-          <input id="newUserName" placeholder="新用户名" />
-          <input id="newUserPass" placeholder="密码（可空）" />
-          <button class="primary" id="createUserBtn">创建用户</button>
+          <button class="primary" data-op="rescan">刷新媒体库</button>
+          <input id="mediaSearch" placeholder="搜索…" style="width:220px" />
+          <span class="tag" id="mediaInfo">—</span>
         </div>
-        <table><thead><tr><th>用户名</th><th>管理员</th><th>播放</th><th>下载</th><th>设备上限</th><th>操作</th></tr></thead>
-          <tbody id="usersBody"></tbody></table>
-      </div>
-      <div class="panel">
-        <h3>日志</h3>
-        <div class="row-flex" style="margin-bottom:10px">
-          <select id="logType" style="background:#0c0e12;border:1px solid var(--line);color:var(--fg);padding:8px 10px;border-radius:8px">
-            <option value="all">全部</option>
-            <option value="activity">常规</option>
-            <option value="error">错误</option>
-            <option value="redirect">重定向</option>
-          </select>
-          <button id="logRefreshBtn">刷新日志</button>
-          <span class="tag" id="logInfo"></span>
+        <div class="panel" style="padding:8px 14px">
+          <table><thead><tr><th>名称</th><th>类型</th><th>年份</th><th>容器</th><th style="width:200px">操作</th></tr></thead><tbody id="mediaBody"></tbody></table>
         </div>
-        <table><thead><tr><th>时间</th><th>类型</th><th>事件</th><th>详情</th></tr></thead>
-          <tbody id="activityBody"></tbody></table>
-      </div>
-    </section>
+      </section>
 
-    <section id="tab-files" class="hidden">
-      <div class="panel">
-        <h3>文件管理</h3>
-        <div class="row-flex" style="margin-bottom:12px">
-          <input id="filePath" placeholder="路径，如 /Movies" value="/" style="width:320px" />
-          <button class="primary" id="fileListBtn">浏览</button>
-          <span class="tag" id="fileInfo"></span>
+      <!-- 文件管理 -->
+      <section id="sec-files" class="pane hidden">
+        <h2>文件管理</h2>
+        <div class="panel">
+          <div class="row-flex" style="margin-bottom:12px">
+            <input id="filePath" placeholder="路径，如 /Movies" value="/" style="width:320px" />
+            <button class="primary" id="fileListBtn">浏览</button>
+            <span class="tag" id="fileInfo"></span>
+          </div>
+          <table><thead><tr><th>名称</th><th>类型</th><th>大小</th><th>操作</th></tr></thead><tbody id="filesBody"></tbody></table>
         </div>
-        <table><thead><tr><th>名称</th><th>类型</th><th>大小</th><th>操作</th></tr></thead>
-          <tbody id="filesBody"></tbody></table>
-      </div>
-    </section>
-  </main>
+      </section>
+
+      <!-- 刮削管理 -->
+      <section id="sec-scrape" class="pane hidden">
+        <h2>刮削管理</h2>
+        <div class="panel">
+          <div class="row-flex" style="margin-bottom:10px">
+            <button class="primary" data-op="scrape">立即刮削</button>
+            <span class="tag" id="scrapeInfo">—</span>
+          </div>
+          <p class="muted">刮削源：TMDB（优先）+ 豆瓣（兜底）。在 `.env` 配置 `TMDB_API_KEY` / `DOUBAN_ENABLED=true` 后生效。</p>
+        </div>
+      </section>
+
+      <!-- 媒体排序 -->
+      <section id="sec-sort" class="pane hidden">
+        <h2>媒体排序</h2>
+        <div class="panel">
+          <div class="row-flex">
+            <label>媒体列表排序：
+              <select id="sortSel">
+                <option value="SortName">名称</option>
+                <option value="ProductionYear">年份（新→旧）</option>
+                <option value="DateCreated">最近添加</option>
+              </select>
+            </label>
+            <button class="primary" id="sortSave">保存</button>
+            <span class="tag" id="sortInfo">—</span>
+          </div>
+          <p class="muted" style="margin-top:10px">排序偏好保存在浏览器本地，用于「媒体管理」列表。</p>
+        </div>
+      </section>
+
+      <!-- 媒体信息 -->
+      <section id="sec-probe" class="pane hidden">
+        <h2>媒体信息</h2>
+        <div class="panel">
+          <div class="row-flex" style="margin-bottom:10px">
+            <button class="primary" data-op="probe">探测全部</button>
+            <span class="tag" id="probeInfo">—</span>
+          </div>
+          <p class="muted">使用 ffprobe 提取真实分辨率/编码/音轨/字幕/时长（`PROBE_ENABLED`、`FFPROBE_PATH`）。</p>
+        </div>
+      </section>
+
+      <!-- 用户权限 -->
+      <section id="sec-users" class="pane hidden">
+        <h2>用户权限</h2>
+        <div class="panel">
+          <div class="row-flex" style="margin-bottom:12px">
+            <input id="newUserName" placeholder="新用户名" />
+            <input id="newUserPass" placeholder="密码（可空）" />
+            <button class="primary" id="createUserBtn">创建用户</button>
+          </div>
+          <table><thead><tr><th>用户名</th><th>管理员</th><th>播放</th><th>下载</th><th>设备上限</th><th style="width:150px">操作</th></tr></thead><tbody id="usersBody"></tbody></table>
+        </div>
+      </section>
+
+      <!-- 增强功能 > 设置 -->
+      <section id="sec-enh-set" class="pane hidden">
+        <h2>增强功能 · 设置</h2>
+        <div class="panel">
+          <div class="row-flex" style="flex-wrap:wrap;gap:14px;align-items:center">
+            <label>服务器名 <input id="setServerName" style="width:150px" /></label>
+            <label>扫描并发 <input id="setScanConc" type="number" min="1" max="64" style="width:80px" /></label>
+            <label>监听延时(s) <input id="setWatchDelay" type="number" min="10" style="width:90px" /></label>
+            <label class="chk"><input type="checkbox" id="setProxyDebug" /> 代理调试</label>
+            <label class="chk"><input type="checkbox" id="setFastCDN" /> FastCDN</label>
+            <label class="chk"><input type="checkbox" id="setInitials" /> 首字母搜索</label>
+            <label class="chk"><input type="checkbox" id="setWatch" /> 文件监听</label>
+            <label class="chk"><input type="checkbox" id="setMergeFolder" /> 同库合并多版本</label>
+            <label class="chk"><input type="checkbox" id="setMergeLibs" /> 跨库合并多版本</label>
+            <button class="primary" id="saveEnhBtn">保存设置</button>
+            <span class="tag" id="enhInfo">—</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 增强功能 > 代理 -->
+      <section id="sec-enh-proxy" class="pane hidden">
+        <h2>增强功能 · 代理</h2>
+        <div class="panel">
+          <div class="row-flex" style="gap:14px;align-items:center;flex-wrap:wrap">
+            <label class="chk"><input type="checkbox" id="pxProxyDebug" /> 代理调试日志</label>
+            <label>第三方反代端口（逗号分隔，最多32个）<input id="pxPorts" style="width:260px" placeholder="9000,9001" /></label>
+            <button class="primary" id="saveProxyBtn">保存</button>
+            <span class="tag" id="pxInfo">—</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 增强功能 > 字幕 / TMDB / Bot / 片头片尾 -->
+      <section id="sec-enh-sub" class="pane hidden">
+        <h2>增强功能 · 字幕</h2>
+        <div class="panel"><p class="muted">外挂字幕自动识别（srt/ass/ssa/vtt/sub）、语言识别、SRT↔VTT 转换、UTF-16 解码，随视频自动生效，无需额外配置。</p></div>
+      </section>
+      <section id="sec-enh-tmdb" class="pane hidden">
+        <h2>增强功能 · TMDB / 豆瓣</h2>
+        <div class="panel"><p class="muted" id="tmdbInfo">—</p><p class="muted">通过环境变量配置：`TMDB_API_KEY`、`TMDB_LANGUAGE`、`DOUBAN_ENABLED`、`DOUBAN_BASE`。</p></div>
+      </section>
+      <section id="sec-enh-bot" class="pane hidden">
+        <h2>增强功能 · Bot</h2>
+        <div class="panel"><p class="muted">未实现（占位）。可用于 Telegram/机器人管理，后续可扩展。</p></div>
+      </section>
+      <section id="sec-enh-intro" class="pane hidden">
+        <h2>增强功能 · 片头片尾</h2>
+        <div class="panel"><p class="muted">未实现（占位）。可用于片头/片尾检测与跳过，后续可扩展。</p></div>
+      </section>
+
+      <!-- API -->
+      <section id="sec-api" class="pane hidden">
+        <h2>API</h2>
+        <div class="panel">
+          <p>基地址：<code id="apiBase">—</code></p>
+          <p class="muted">用登录返回的 AccessToken（或 api_key）访问。</p>
+          <div class="code" id="apiSample">—</div>
+        </div>
+      </section>
+    </main>
+  </div>
 </div>
 
-<!-- 详情/播放弹窗 -->
+<!-- 详情/播放 -->
 <div class="modal-mask" id="modal">
-  <div class="modal" style="position:relative">
+  <div class="modal">
     <span class="close" id="modalClose">✕</span>
     <div class="head">
       <img id="mPoster" alt="poster" />
       <div class="info">
         <h2 id="mTitle"></h2>
-        <div class="sub" id="mSub" style="color:var(--muted);font-size:13px"></div>
-        <div class="desc" id="mDesc"></div>
+        <div class="muted" id="mSub" style="font-size:13px"></div>
+        <div class="muted" id="mDesc" style="font-size:14px;line-height:1.6;margin:10px 0"></div>
         <button class="primary" id="playBtn">▶ 播放</button>
         <label class="tag" style="cursor:pointer;margin-left:8px">上传海报<input type="file" id="posterFile" accept="image/*" style="display:none"></label>
       </div>
@@ -207,373 +333,251 @@
 
 <script>
 const $ = s => document.querySelector(s);
-const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const state = { token: localStorage.getItem('ge_token') || '', user: null, items: [], current: null, lang: localStorage.getItem('ge_lang') || 'zh' };
-
-const I18N = {
- zh:{tab_library:'媒体库',tab_admin:'后台管理',tab_files:'文件',logout:'退出',loginTitle:'Go-Emby 复刻版',loginSub:'Emby 兼容媒体服务器 · 登录以进入媒体库',loginUser:'用户名',loginPass:'密码（默认 admin）',login:'登录',refresh:'刷新媒体库',searchPh:'搜索片名…',ops:'运维',enh:'增强设置',users:'用户管理',logs:'日志',filesPanel:'文件管理',scrape:'TMDB 刮削',sync:'Xiaoya / OpenList 同步',probe:'媒体信息探测',save:'保存设置',createUser:'创建用户',logRefresh:'刷新日志',browse:'浏览',play:'▶ 播放'},
- en:{tab_library:'Library',tab_admin:'Admin',tab_files:'Files',logout:'Sign out',loginTitle:'Go-Emby Clone',loginSub:'Emby-compatible media server · sign in',loginUser:'Username',loginPass:'Password (default admin)',login:'Sign in',refresh:'Refresh library',searchPh:'Search titles…',ops:'Operations',enh:'Enhancements',users:'Users',logs:'Logs',filesPanel:'File Manager',scrape:'TMDB Scrape',sync:'Xiaoya / OpenList Sync',probe:'Probe Media Info',save:'Save',createUser:'Create user',logRefresh:'Refresh logs',browse:'Browse',play:'▶ Play'}
-};
-function t(k){ const l=I18N[state.lang]||I18N.zh; return l[k]||I18N.zh[k]||k; }
-function setText(sel,txt){ const el=document.querySelector(sel); if(el) el.textContent=txt; }
-function setPh(sel,txt){ const el=document.querySelector(sel); if(el) el.placeholder=txt; }
-function applyLang(){
-  document.querySelectorAll('.tab[data-tab]').forEach(tb=>{ tb.textContent=t('tab_'+tb.dataset.tab); });
-  setText('#logoutBtn',t('logout'));
-  setText('#loginView h1',t('loginTitle'));
-  setText('#loginView p',t('loginSub'));
-  setPh('#loginUser',t('loginUser')); setPh('#loginPass',t('loginPass')); setText('#loginBtn',t('login'));
-  setText('#refreshBtn',t('refresh')); setPh('#searchBox',t('searchPh'));
-  const hs=document.querySelectorAll('#tab-admin .panel h3');
-  if(hs[0])hs[0].textContent=t('ops');
-  if(hs[1])hs[1].textContent=t('enh');
-  if(hs[2])hs[2].textContent=t('users');
-  if(hs[3])hs[3].textContent=t('logs');
-  const fh=document.querySelector('#tab-files .panel h3'); if(fh)fh.textContent=t('filesPanel');
-  setText('#scrapeBtn',t('scrape')); setText('#syncBtn',t('sync')); setText('#probeBtn',t('probe'));
-  setText('#saveEnhBtn',t('save')); setText('#createUserBtn',t('createUser')); setText('#logRefreshBtn',t('logRefresh'));
-  setText('#fileListBtn',t('browse')); setText('#playBtn',t('play'));
-}
-const _langSel=document.querySelector('#langSel');
-if(_langSel){ _langSel.value=state.lang; _langSel.onchange=()=>{ state.lang=_langSel.value; localStorage.setItem('ge_lang',state.lang); applyLang(); }; }
-
-async function editPolicy(u){
-  if(!u) return;
-  const p = u.Policy || {};
-  const md = prompt('最大并发设备数（0 = 不限制）', (p.MaxActiveDevices||0));
-  if(md===null) return;
-  const play = prompt('允许播放？输入 y=允许 / n=禁止', p.EnableMediaPlayback===false?'n':'y');
-  if(play===null) return;
-  const dl = prompt('允许下载？输入 y=允许 / n=禁止', p.EnableContentDownloading===false?'n':'y');
-  if(dl===null) return;
-  const body = {
-    MaxActiveDevices: parseInt(md,10)||0,
-    EnableMediaPlayback: play.trim().toLowerCase()!=='n',
-    EnableContentDownloading: dl.trim().toLowerCase()!=='n'
-  };
-  try{ await api('/Users/'+u.Id+'/Policy',{method:'PUT',body:JSON.stringify(body)}); loadAdmin(); }
-  catch(e){ alert('保存失败：'+e.message); }
-}
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const state = { token: localStorage.getItem('ge_token')||'', user: null, items: [], current: null, sec: 'library' };
 
 function api(path, opts={}){
   opts.headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{});
-  if(state.token) opts.headers['X-Emby-Token'] = state.token;
-  return fetch(path, opts).then(async r => {
-    const txt = await r.text();
-    let data = null; try { data = txt ? JSON.parse(txt) : null; } catch(e){ data = txt; }
-    if(!r.ok) throw new Error((data && data.error) || ('HTTP '+r.status));
+  if(state.token) opts.headers['X-Emby-Token']=state.token;
+  return fetch(path, opts).then(async r=>{
+    const txt=await r.text(); let data=null; try{data=txt?JSON.parse(txt):null}catch(e){data=txt}
+    if(!r.ok) throw new Error((data&&data.error)||('HTTP '+r.status));
     return data;
   });
 }
+function login(){ return fetch('/Users/AuthenticateByName',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({Username:$('#loginUser').value.trim(),Pw:$('#loginPass').value})}).then(async r=>{const d=await r.json(); if(!r.ok) throw new Error(d.error||'登录失败'); return d;}); }
 
-/* ---------- 登录 ---------- */
-async function doLogin(){
-  const username = $('#loginUser').value.trim();
-  const pw = $('#loginPass').value;
-  $('#loginErr').textContent = '';
-  try{
-    const res = await fetch('/Users/AuthenticateByName', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({Username:username, Pw:pw})
-    });
-    const data = await res.json();
-    if(!res.ok) throw new Error(data.error || '登录失败');
-    state.token = data.AccessToken;
-    state.user = data.User;
-    localStorage.setItem('ge_token', state.token);
-    localStorage.setItem('ge_user', JSON.stringify(state.user));
-    enterApp();
-  }catch(e){ $('#loginErr').textContent = e.message; }
-}
+document.getElementById('loginBtn').onclick = async ()=>{
+  $('#loginErr').textContent='';
+  try{ const d=await login(); state.token=d.AccessToken; state.user=d.User; localStorage.setItem('ge_token',state.token); localStorage.setItem('ge_user',JSON.stringify(state.user)); enterApp(); }
+  catch(e){ $('#loginErr').textContent=e.message; }
+};
+$('#loginPass').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#loginBtn').click(); });
+function logout(){ state.token=''; state.user=null; localStorage.removeItem('ge_token'); localStorage.removeItem('ge_user'); location.reload(); }
+$('#logoutBtn').onclick = logout;
 
 function enterApp(){
-  $('#loginView').classList.add('hidden');
-  $('#appView').classList.remove('hidden');
-  $('#who').textContent = state.user ? (state.user.Name + (state.user.IsAdmin ? ' · 管理员' : '')) : '';
-  loadWall();
-  loadAdmin();
+  $('#loginView').classList.add('hidden'); $('#appView').classList.remove('hidden');
+  $('#who').textContent = state.user ? state.user.Name+(state.user.IsAdmin?' · 管理员':'') : '';
+  show('library');
 }
 
-function logout(){
-  state.token=''; state.user=null;
-  localStorage.removeItem('ge_token'); localStorage.removeItem('ge_user');
-  location.reload();
+/* ---------- 视图切换 ---------- */
+function show(sec){
+  state.sec=sec;
+  const isLib = sec==='library';
+  $('#sidebar').classList.toggle('hidden', isLib);
+  document.querySelectorAll('.pane').forEach(p=>p.classList.add('hidden'));
+  const el=document.getElementById('sec-'+sec); if(el) el.classList.remove('hidden');
+  document.querySelectorAll('.sidebar .nav[data-sec]').forEach(n=>n.classList.toggle('active', n.dataset.sec===sec));
+  if(sec==='library') loadWall();
+  else if(sec==='dashboard') loadDashboard();
+  else if(sec==='media') loadMedia();
+  else if(sec==='files') loadFiles($('#filePath').value||'/');
+  else if(sec==='scrape') loadScrape();
+  else if(sec==='probe') loadProbe();
+  else if(sec==='users') loadUsers();
+  else if(sec==='enh-set') loadEnhancements();
+  else if(sec==='enh-proxy') loadProxy();
+  else if(sec==='enh-tmdb') loadTmdb();
+  else if(sec==='api') loadApi();
 }
+document.querySelectorAll('.sidebar .nav[data-sec]').forEach(n=> n.onclick=()=>show(n.dataset.sec));
+$('#toLibrary').onclick = ()=>show('library');
+$('#toAdmin').onclick = ()=>show('dashboard');
+$('#toLogs').onclick = ()=>show('dashboard');
+$('#enhToggle').onclick = ()=>{ $('#enhSub').classList.toggle('hidden'); };
 
 /* ---------- 媒体库 ---------- */
 async function loadWall(){
-  const wall = $('#wall');
-  wall.innerHTML = '<div class="empty">加载中…</div>';
+  const wall=$('#wall'); wall.innerHTML='<div class="empty">加载中…</div>';
   try{
-    const res = await api('/Users/'+state.user.Id+'/Items?Recursive=true&IncludeItemTypes=Movie,Series&SortBy=SortName&Limit=500');
-    state.items = res.Items || [];
-    renderWall(state.items);
-  }catch(e){ wall.innerHTML = '<div class="empty">加载失败：'+e.message+'</div>'; }
+    const res=await api('/Users/'+state.user.Id+'/Items?Recursive=true&IncludeItemTypes=Movie,Series&SortBy=SortName&Limit=500');
+    state.items=res.Items||[]; renderWall(state.items);
+  }catch(e){ wall.innerHTML='<div class="empty">加载失败：'+esc(e.message)+'</div>'; }
 }
-
 function renderWall(items){
-  const wall = $('#wall');
-  $('#countTag').textContent = items.length + ' 个条目';
-  if(!items.length){ wall.innerHTML = '<div class="empty">媒体库为空，请把影视文件放入 MEDIA_ROOTS 后点“刷新媒体库”。</div>'; return; }
-  wall.innerHTML = '';
+  const wall=$('#wall');
+  $('#countTag').textContent=items.length+' 个条目';
+  if(!items.length){ wall.innerHTML='<div class="empty">媒体库为空，请把影视放入 MEDIA_ROOTS 后点“刷新媒体库”。</div>'; return; }
+  wall.innerHTML='';
   for(const it of items){
-    const card = document.createElement('div');
-    card.className = 'card';
-    const img = document.createElement('img');
-    img.className='poster'; img.loading='lazy';
-    img.src = '/Items/'+it.Id+'/Images/Primary?maxWidth=300&api_key='+encodeURIComponent(state.token);
-    img.onerror = () => { img.style.visibility='hidden'; };
-    const meta = document.createElement('div'); meta.className='meta';
-    const tt = document.createElement('div'); tt.className='tt'; tt.textContent = it.Name;
-    const sub = document.createElement('div'); sub.className='sub';
-    sub.textContent = (it.Type==='Series' ? '剧集' : '电影') + (it.ProductionYear ? ' · '+it.ProductionYear : '');
-    meta.appendChild(tt); meta.appendChild(sub);
-    card.appendChild(img); card.appendChild(meta);
-    card.onclick = () => openDetail(it.Id);
-    wall.appendChild(card);
+    const card=document.createElement('div'); card.className='card';
+    const img=document.createElement('img'); img.className='poster'; img.loading='lazy';
+    img.src='/Items/'+it.Id+'/Images/Primary?maxWidth=300&api_key='+encodeURIComponent(state.token);
+    img.onerror=()=>{img.style.visibility='hidden'};
+    const meta=document.createElement('div'); meta.className='meta';
+    const tt=document.createElement('div'); tt.className='tt'; tt.textContent=it.Name;
+    const sub=document.createElement('div'); sub.className='sub'; sub.textContent=(it.Type==='Series'?'剧集':'电影')+(it.ProductionYear?' · '+it.ProductionYear:'');
+    meta.appendChild(tt); meta.appendChild(sub); card.appendChild(img); card.appendChild(meta);
+    card.onclick=()=>openDetail(it.Id); wall.appendChild(card);
   }
 }
+$('#searchBox').addEventListener('input',e=>{ const k=e.target.value.trim().toLowerCase(); renderWall(state.items.filter(x=>x.Name.toLowerCase().includes(k))); });
+$('#refreshBtn').onclick=()=>op('rescan',()=>loadWall());
 
-$('#searchBox').addEventListener('input', e => {
-  const k = e.target.value.trim().toLowerCase();
-  renderWall(state.items.filter(x => x.Name.toLowerCase().includes(k)));
-});
-
-/* ---------- 详情/播放 ---------- */
-async function openDetail(id){
+/* ---------- 控制台 ---------- */
+async function loadStats(){ return api('/admin/stats'); }
+async function loadDashboard(){
   try{
-    const it = await api('/Items/'+id);
-    state.current = it;
-    $('#mTitle').textContent = it.Name;
-    $('#mSub').textContent = (it.Type==='Series'?'剧集':it.Type==='Episode'?'剧集':'电影') +
-      (it.ProductionYear?' · '+it.ProductionYear:'') + (it.Container?' · '+it.Container:'');
-    $('#mDesc').textContent = it.Overview || '暂无简介。';
-    $('#mPoster').src = '/Items/'+it.Id+'/Images/Primary?maxWidth=300&api_key='+encodeURIComponent(state.token);
-    $('#mPoster').style.visibility='visible';
-    const player = $('#player'); player.classList.add('hidden'); player.removeAttribute('src'); player.load();
-    $('#playBtn').classList.remove('hidden');
-    const pb = $('#playBtn');
-    // 剧集/剧 -> 导航到子项
-    if(it.Type==='Series' || it.Type==='Season' || it.IsFolder){
-      pb.textContent = '查看内容';
-      pb.onclick = () => { $('#modal').classList.remove('show'); browseChildren(it); };
-    } else {
-      pb.textContent = '▶ 播放';
-      pb.onclick = () => playItem(it);
-    }
-    $('#modal').classList.add('show');
-  }catch(e){ alert('打开失败：'+e.message); }
+    const s=await loadStats();
+    $('#dashStats').innerHTML=[['电影',s.movies],['剧集',s.episodes],['剧',s.series],['用户',s.users],['媒体库',s.libraries],['STRM',s.strmCount||0]].map(([l,n])=>'<div class="stat"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>').join('');
+    $('#dashInfo').textContent='存储:'+(s.backend||'-')+' · 授权:'+((s.license||{}).mode||'-');
+    const act=await api('/admin/logs?type=activity&limit=15');
+    $('#dashActivity').innerHTML=(act.Items||[]).map(a=>'<tr><td class="muted">'+esc((a.Date||'').replace('T',' ').slice(0,19))+'</td><td>'+esc(a.Name)+'</td><td class="muted">'+esc(a.ShortOverview||'')+'</td></tr>').join('')||'<tr><td colspan="3" class="empty">暂无</td></tr>';
+  }catch(e){ $('#dashStats').innerHTML='<div class="empty">加载失败：'+esc(e.message)+'</div>'; }
 }
 
-async function browseChildren(it){
-  const res = await api('/Users/'+state.user.Id+'/Items?ParentId='+it.Id+'&Recursive=false');
-  const items = res.Items || [];
-  if(items.length===1 && (items[0].Type==='Season')){
-    return browseChildren(items[0]);
-  }
-  // 直接播放第一个可播放条目；否则刷新墙面为子项
-  const playable = items.find(x=>x.Type==='Episode'||x.Type==='Movie');
-  if(playable && items.length===1){ return openDetail(playable.Id); }
-  state.items = items; renderWall(items);
-  window.scrollTo(0,0);
-}
-
-async function playItem(it){
+/* ---------- 媒体管理 ---------- */
+async function loadMedia(){
+  const body=$('#mediaBody'); body.innerHTML='<tr><td colspan="5" class="empty">加载中…</td></tr>';
+  const sort=localStorage.getItem('ge_sort')||'SortName';
+  const search=($('#mediaSearch').value||'').trim();
   try{
-    const info = await api('/Items/'+it.Id+'/PlaybackInfo', {method:'POST', body:'{}'});
-    const src = (info.MediaSources && info.MediaSources[0] && info.MediaSources[0].DirectStreamUrl) || '';
-    if(!src){ alert('该条目没有可播放的媒体源。'); return; }
-    const player = $('#player');
-    player.classList.remove('hidden');
-    player.src = src;
-    $('#playBtn').classList.add('hidden');
-    player.play().catch(()=>{});
-    api('/Sessions/Playing', {method:'POST', body: JSON.stringify({ItemId:it.Id, PlayMethod:'DirectStream'})}).catch(()=>{});
-  }catch(e){ alert('播放失败：'+e.message); }
+    let url='/Users/'+state.user.Id+'/Items?Recursive=true&IncludeItemTypes=Movie,Series&SortBy='+encodeURIComponent(sort)+'&Limit=1000';
+    if(search) url+='&SearchTerm='+encodeURIComponent(search);
+    const res=await api(url);
+    $('#mediaInfo').textContent=(res.TotalRecordCount||0)+' 项';
+    body.innerHTML=(res.Items||[]).map(it=>'<tr><td>'+esc(it.Name)+'</td><td>'+(it.Type==='Series'?'剧集':'电影')+'</td><td>'+(it.ProductionYear||'')+'</td><td>'+esc(it.Container||'')+'</td>'+
+      '<td><button data-play="'+it.Id+'">播放</button> <button data-ren="'+it.Id+'">改名</button> <button class="danger" data-del="'+it.Id+'">删除</button></td></tr>').join('')||'<tr><td colspan="5" class="empty">空</td></tr>';
+    body.querySelectorAll('[data-play]').forEach(b=>b.onclick=()=>openDetail(b.dataset.play));
+    body.querySelectorAll('[data-ren]').forEach(b=>b.onclick=async()=>{ const it=res.Items.find(x=>x.Id===b.dataset.ren); const nn=prompt('新名称',it?it.Name:''); if(!nn)return; try{ await api('/Items/'+b.dataset.ren,{method:'PUT',body:JSON.stringify({Name:nn})}); loadMedia(); }catch(e){alert('改名失败：'+e.message)} });
+    body.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{ if(!confirm('确认删除该媒体（含磁盘文件）？'))return; try{ await api('/Items/'+b.dataset.del,{method:'DELETE'}); loadMedia(); }catch(e){alert('删除失败：'+e.message)} });
+  }catch(e){ body.innerHTML='<tr><td colspan="5" class="empty">加载失败：'+esc(e.message)+'</td></tr>'; }
 }
-
-$('#modalClose').onclick = () => { $('#modal').classList.remove('show'); const p=$('#player'); p.pause(); };
-
-/* ---------- 后台 ---------- */
-async function loadAdmin(){
-  if(!state.user || !state.user.IsAdmin) return;
-  try{
-    const s = await api('/admin/stats');
-    $('#stats').innerHTML = [
-      ['电影', s.movies], ['剧集', s.episodes], ['剧', s.series],
-      ['用户', s.users], ['媒体库', s.libraries], ['STRM', s.strmCount||0], ['日志', s.activity]
-    ].map(([l,n])=>'<div class="stat"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>').join('');
-    const lic = s.license || {};
-    $('#opsInfo').textContent = '存储:'+(s.backend||'-')+' · TMDB:'+(s.tmdbEnabled?'开':'关')
-      +' · 豆瓣:'+(s.doubanEnabled?'开':'关')+' · STRM:'+(s.strmCount||0)
-      +' · 监听:'+(s.watchEnabled?'开':'关')+' · 探测:'+(s.probedCount||0)+'/'+(s.movies+s.episodes)
-      +' · 授权:'+(lic.mode||'-');
-    $('#scrapeBtn').disabled = !(s.tmdbEnabled||s.doubanEnabled);
-    $('#syncBtn').disabled = !s.xiaoyaConfigured;
-    $('#probeBtn').disabled = !s.probeEnabled;
-    const users = await api('/Users');
-    $('#usersBody').innerHTML = users.map(u=>{
-      const p = u.Policy || {};
-      const dev = (p.MaxActiveDevices && p.MaxActiveDevices>0) ? p.MaxActiveDevices : '不限';
-      return '<tr><td>'+esc(u.Name)+'</td><td>'+(u.IsAdmin?'是':'否')+'</td>'+
-        '<td>'+(p.EnableMediaPlayback===false?'<span style="color:#ff8f8f">禁止</span>':'允许')+'</td>'+
-        '<td>'+(p.EnableContentDownloading===false?'<span style="color:#ff8f8f">禁止</span>':'允许')+'</td>'+
-        '<td>'+dev+'</td>'+
-        '<td><button data-edit="'+u.Id+'">编辑</button> '+(u.Name==='admin'?'':'<button class="danger" data-del="'+u.Id+'">删除</button>')+'</td></tr>';
-    }).join('');
-    document.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
-      if(!confirm('确认删除该用户？')) return;
-      await api('/Users/'+b.dataset.del,{method:'DELETE'}); loadAdmin();
-    });
-    document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
-      const u = users.find(x=>x.Id===b.dataset.edit); editPolicy(u);
-    });
-    loadLogs();
-    loadEnhancements();
-  }catch(e){ /* 非管理员忽略 */ }
-}
-
-async function loadLogs(){
-  const t=$('#logType').value||'all';
-  try{
-    const act=await api('/admin/logs?type='+encodeURIComponent(t)+'&limit=100');
-    $('#logInfo').textContent=(act.TotalRecordCount||0)+' 条';
-    $('#activityBody').innerHTML=(act.Items||[]).map(a=>(
-      '<tr><td style="color:var(--muted);white-space:nowrap">'+esc((a.Date||'').replace('T',' ').slice(0,19))+'</td>'+
-      '<td><span class="tag">'+esc(a.Type||'')+'</span></td>'+
-      '<td>'+esc(a.Name)+'</td><td style="color:var(--muted)">'+esc(a.ShortOverview||'')+'</td></tr>'
-    )).join('') || '<tr><td colspan="4" class="empty">暂无日志</td></tr>';
-  }catch(e){ $('#activityBody').innerHTML='<tr><td colspan="4" class="empty">加载失败：'+esc(e.message)+'</td></tr>'; }
-}
-async function loadEnhancements(){
-  try{
-    const e=await api('/admin/enhancements');
-    $('#setServerName').value=e.ServerName||'';
-    $('#setScanConc').value=e.ScanConcurrency||1;
-    $('#setWatchDelay').value=e.WatchDelaySeconds||30;
-    $('#setProxyDebug').checked=!!e.ProxyDebug;
-    $('#setFastCDN').checked=!!e.FastCDN;
-    $('#setInitials').checked=!!e.SearchByInitials;
-    if($('#setWatch')) $('#setWatch').checked=!!e.WatchEnabled;
-    if($('#setMergeFolder')) $('#setMergeFolder').checked=!!e.MergeVersionsInFolder;
-    if($('#setMergeLibs')) $('#setMergeLibs').checked=!!e.MergeVersionsAcrossLibraries;
-  }catch(e){}
-}
-$('#logType').onchange=()=>loadLogs();
-$('#logRefreshBtn').onclick=()=>loadLogs();
-$('#saveEnhBtn').onclick=async()=>{
-  const body={ ServerName:$('#setServerName').value.trim(), ScanConcurrency:parseInt($('#setScanConc').value,10)||1,
-    WatchDelaySeconds:parseInt($('#setWatchDelay').value,10)||30,
-    ProxyDebug:$('#setProxyDebug').checked, FastCDN:$('#setFastCDN').checked, SearchByInitials:$('#setInitials').checked,
-    WatchEnabled:$('#setWatch')?$('#setWatch').checked:undefined,
-    MergeVersionsInFolder:$('#setMergeFolder')?$('#setMergeFolder').checked:undefined,
-    MergeVersionsAcrossLibraries:$('#setMergeLibs')?$('#setMergeLibs').checked:undefined };
-  try{ const r=await api('/admin/enhancements',{method:'PUT',body:JSON.stringify(body)});
-    $('#enhInfo').textContent='已保存 · 服务器名:'+r.ServerName; alert('设置已保存');
-  }catch(e){ alert('保存失败：'+e.message); }
-};
-
-$('#refreshBtn').onclick = async () => {
-  $('#refreshBtn').disabled = true; $('#refreshBtn').textContent='扫描中…';
-  try{ await api('/Library/Refresh',{method:'POST',body:'{}'}); 
-    setTimeout(async()=>{ await loadWall(); $('#refreshBtn').disabled=false; $('#refreshBtn').textContent='刷新媒体库'; }, 1500);
-  }catch(e){ alert('触发扫描失败：'+e.message); $('#refreshBtn').disabled=false; $('#refreshBtn').textContent='刷新媒体库'; }
-};
-
-$('#createUserBtn').onclick = async () => {
-  const name = $('#newUserName').value.trim(); const pass = $('#newUserPass').value;
-  if(!name){ alert('请输入用户名'); return; }
-  try{ await api('/Users',{method:'POST',body:JSON.stringify({Name:name,Password:pass})});
-    $('#newUserName').value=''; $('#newUserPass').value=''; loadAdmin();
-  }catch(e){ alert('创建失败：'+e.message); }
-};
-
-$('#scrapeBtn').onclick = async () => {
-  try{ const r = await api('/admin/scrape',{method:'POST',body:'{}'}); alert(r.message||'刮削已开始'); }
-  catch(e){ alert('触发失败：'+e.message); }
-};
-$('#syncBtn').onclick = async () => {
-  try{ const r = await api('/admin/xiaoya/sync',{method:'POST',body:'{}'}); alert(r.message||'同步已开始'); }
-  catch(e){ alert('触发失败：'+e.message); }
-};
-$('#probeBtn').onclick = async () => {
-  try{ const r = await api('/admin/probe',{method:'POST',body:'{}'}); alert(r.message||'探测已开始'); }
-  catch(e){ alert('触发失败：'+e.message); }
-};
+$('#mediaSearch').addEventListener('input',()=>{ clearTimeout(window._mt); window._mt=setTimeout(loadMedia,300); });
+$('#sortSave').onclick=()=>{ localStorage.setItem('ge_sort',$('#sortSel').value); $('#sortInfo').textContent='已保存：'+$('#sortSel').value; };
+$('#sortSel').value=localStorage.getItem('ge_sort')||'SortName';
 
 /* ---------- 文件管理 ---------- */
-function parentPath(p){ if(!p||p==='/') return '/'; const t=p.replace(/\/+$/,''); const i=t.lastIndexOf('/'); return i<=0?'/':t.slice(0,i); }
-function humanSize(n){ if(!n) return '0B'; const u=['B','KB','MB','GB','TB']; let i=0,x=n; while(x>=1024&&i<u.length-1){x/=1024;i++;} return x.toFixed(i?1:0)+u[i]; }
+function parentPath(p){ if(!p||p==='/')return '/'; const t=p.replace(/\/+$/,''); const i=t.lastIndexOf('/'); return i<=0?'/':t.slice(0,i); }
+function humanSize(n){ if(!n)return '0B'; const u=['B','KB','MB','GB','TB']; let i=0,x=n; while(x>=1024&&i<u.length-1){x/=1024;i++;} return x.toFixed(i?1:0)+u[i]; }
 async function loadFiles(path){
-  const body=$('#filesBody');
-  body.innerHTML='<tr><td colspan="4" class="empty">加载中…</td></tr>';
+  const body=$('#filesBody'); body.innerHTML='<tr><td colspan="4" class="empty">加载中…</td></tr>';
   try{
     const res=await api('/api/files?path='+encodeURIComponent(path));
     $('#fileInfo').textContent=(res.total||0)+' 项';
     let rows='';
     if(path!=='/') rows+='<tr><td><a href="#" data-dir="'+esc(parentPath(path))+'">..</a></td><td>目录</td><td></td><td></td></tr>';
     for(const e of (res.entries||[])){
-      const nameCell=e.isDir?'<a href="#" data-dir="'+esc(e.path)+'">'+esc(e.name)+'/</a>':esc(e.name);
-      const size=e.isDir?'':humanSize(e.size);
-      rows+='<tr><td>'+nameCell+'</td><td>'+(e.isDir?'目录':'文件')+'</td><td>'+size+'</td>'+
-        '<td><button class="danger" data-file-del="'+esc(e.path)+'">删除</button>'+
-        (e.isDir?' <button data-file-ren="'+esc(e.path)+'">重命名</button>':'')+'</td></tr>';
+      const nc=e.isDir?'<a href="#" data-dir="'+esc(e.path)+'">'+esc(e.name)+'/</a>':esc(e.name);
+      rows+='<tr><td>'+nc+'</td><td>'+(e.isDir?'目录':'文件')+'</td><td>'+(e.isDir?'':humanSize(e.size))+'</td><td><button class="danger" data-file-del="'+esc(e.path)+'">删除</button>'+(e.isDir?' <button data-file-ren="'+esc(e.path)+'">重命名</button>':'')+'</td></tr>';
     }
     body.innerHTML=rows||'<tr><td colspan="4" class="empty">空目录</td></tr>';
-    body.querySelectorAll('[data-dir]').forEach(a=>a.onclick=(ev)=>{ev.preventDefault();$('#filePath').value=a.dataset.dir;loadFiles(a.dataset.dir);});
-    body.querySelectorAll('[data-file-del]').forEach(b=>b.onclick=async()=>{
-      const p=b.dataset.fileDel; if(!confirm('确认删除 '+p+' ?')) return;
-      try{ await api('/api/files',{method:'DELETE',body:JSON.stringify({Paths:[p]})}); loadFiles($('#filePath').value||'/'); }
-      catch(e){ alert('删除失败：'+e.message); }
-    });
-    body.querySelectorAll('[data-file-ren]').forEach(b=>b.onclick=async()=>{
-      const p=b.dataset.fileRen; const nn=prompt('新的目录名（同级）',p.split('/').pop()); if(!nn) return;
-      const dir=p.substring(0,p.lastIndexOf('/')); const np=dir+'/'+nn;
-      try{ await api('/api/files/rename',{method:'POST',body:JSON.stringify({OldPath:p,NewPath:np})}); loadFiles($('#filePath').value||'/'); }
-      catch(e){ alert('重命名失败：'+e.message); }
-    });
+    body.querySelectorAll('[data-dir]').forEach(a=>a.onclick=ev=>{ev.preventDefault(); $('#filePath').value=a.dataset.dir; loadFiles(a.dataset.dir);});
+    body.querySelectorAll('[data-file-del]').forEach(b=>b.onclick=async()=>{ const p=b.dataset.fileDel; if(!confirm('确认删除 '+p+' ?'))return; try{ await api('/api/files',{method:'DELETE',body:JSON.stringify({Paths:[p]})}); loadFiles($('#filePath').value||'/'); }catch(e){alert('删除失败：'+e.message)} });
+    body.querySelectorAll('[data-file-ren]').forEach(b=>b.onclick=async()=>{ const p=b.dataset.fileRen; const nn=prompt('新目录名',p.split('/').pop()); if(!nn)return; const dir=p.substring(0,p.lastIndexOf('/')); try{ await api('/api/files/rename',{method:'POST',body:JSON.stringify({OldPath:p,NewPath:dir+'/'+nn})}); loadFiles($('#filePath').value||'/'); }catch(e){alert('重命名失败：'+e.message)} });
   }catch(e){ body.innerHTML='<tr><td colspan="4" class="empty">加载失败：'+esc(e.message)+'</td></tr>'; }
 }
-$('#fileListBtn').onclick=()=>{ loadFiles($('#filePath').value||'/'); };
+$('#fileListBtn').onclick=()=>loadFiles($('#filePath').value||'/');
 
-/* ---------- 上传海报 ---------- */
-$('#posterFile').onchange = async (ev)=>{
-  const f=ev.target.files[0]; if(!f||!state.current) return;
+/* ---------- 刮削 / 探测 / TMDB ---------- */
+async function loadScrape(){ try{ const s=await loadStats(); $('#scrapeInfo').textContent='TMDB:'+(s.tmdbEnabled?'开':'关')+' · 豆瓣:'+(s.doubanEnabled?'开':'关'); }catch(e){} }
+async function loadProbe(){ try{ const s=await loadStats(); $('#probeInfo').textContent='已探测 '+(s.probedCount||0)+' / '+(s.movies+s.episodes)+' · ffprobe:'+(s.probeEnabled?'可用':'不可用'); }catch(e){} }
+async function loadTmdb(){ try{ const s=await loadStats(); $('#tmdbInfo').textContent='TMDB:'+(s.tmdbEnabled?'已启用':'未配置')+' ，豆瓣:'+(s.doubanEnabled?'已启用':'未启用'); }catch(e){} }
+
+/* ---------- 用户权限 ---------- */
+async function loadUsers(){
   try{
-    const buf=await f.arrayBuffer();
-    const r=await fetch('/Items/'+state.current.Id+'/Images/Primary',{method:'POST',headers:{'X-Emby-Token':state.token,'Content-Type':f.type||'image/jpeg'},body:buf});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    $('#mPoster').src='/Items/'+state.current.Id+'/Images/Primary?maxWidth=300&api_key='+encodeURIComponent(state.token)+'&t='+Date.now();
-    alert('海报已上传');
-  }catch(e){ alert('上传失败：'+e.message); }
+    const users=await api('/Users');
+    $('#usersBody').innerHTML=users.map(u=>{ const p=u.Policy||{}; const dev=(p.MaxActiveDevices&&p.MaxActiveDevices>0)?p.MaxActiveDevices:'不限';
+      return '<tr><td>'+esc(u.Name)+'</td><td>'+(u.IsAdmin?'是':'否')+'</td><td>'+(p.EnableMediaPlayback===false?'<span style="color:#ff9b9b">禁止</span>':'允许')+'</td><td>'+(p.EnableContentDownloading===false?'<span style="color:#ff9b9b">禁止</span>':'允许')+'</td><td>'+dev+'</td><td><button data-edit="'+u.Id+'">编辑策略</button> '+(u.Name==='admin'?'':'<button class="danger" data-delu="'+u.Id+'">删除</button>')+'</td></tr>'; }).join('');
+    document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{ const u=users.find(x=>x.Id===b.dataset.edit); editPolicy(u); });
+    document.querySelectorAll('[data-delu]').forEach(b=>b.onclick=async()=>{ if(!confirm('删除该用户？'))return; await api('/Users/'+b.dataset.delu,{method:'DELETE'}); loadUsers(); });
+  }catch(e){ $('#usersBody').innerHTML='<tr><td colspan="6" class="empty">加载失败：'+esc(e.message)+'</td></tr>'; }
+}
+async function editPolicy(u){
+  const p=u.Policy||{};
+  const md=prompt('最大并发设备数（0=不限）',p.MaxActiveDevices||0); if(md===null)return;
+  const play=prompt('允许播放？y/n',p.EnableMediaPlayback===false?'n':'y'); if(play===null)return;
+  const dl=prompt('允许下载？y/n',p.EnableContentDownloading===false?'n':'y'); if(dl===null)return;
+  try{ await api('/Users/'+u.Id+'/Policy',{method:'PUT',body:JSON.stringify({MaxActiveDevices:parseInt(md,10)||0,EnableMediaPlayback:play.trim().toLowerCase()!=='n',EnableContentDownloading:dl.trim().toLowerCase()!=='n'})}); loadUsers(); }catch(e){alert('保存失败：'+e.message)}
+}
+$('#createUserBtn').onclick=async()=>{ const name=$('#newUserName').value.trim(); if(!name){alert('请输入用户名');return;} try{ await api('/Users',{method:'POST',body:JSON.stringify({Name:name,Password:$('#newUserPass').value})}); $('#newUserName').value='';$('#newUserPass').value=''; loadUsers(); }catch(e){alert('创建失败：'+e.message)} };
+
+/* ---------- 增强设置 ---------- */
+async function loadEnhancements(){
+  try{ const e=await api('/admin/enhancements');
+    $('#setServerName').value=e.ServerName||''; $('#setScanConc').value=e.ScanConcurrency||1; $('#setWatchDelay').value=e.WatchDelaySeconds||30;
+    $('#setProxyDebug').checked=!!e.ProxyDebug; $('#setFastCDN').checked=!!e.FastCDN; $('#setInitials').checked=!!e.SearchByInitials;
+    $('#setWatch').checked=!!e.WatchEnabled; $('#setMergeFolder').checked=!!e.MergeVersionsInFolder; $('#setMergeLibs').checked=!!e.MergeVersionsAcrossLibraries;
+    $('#enhInfo').textContent='保存后即时生效';
+  }catch(e){ $('#enhInfo').textContent='加载失败：'+e.message; }
+}
+$('#saveEnhBtn').onclick=async()=>{
+  const body={ ServerName:$('#setServerName').value.trim(), ScanConcurrency:parseInt($('#setScanConc').value,10)||1, WatchDelaySeconds:parseInt($('#setWatchDelay').value,10)||30,
+    ProxyDebug:$('#setProxyDebug').checked, FastCDN:$('#setFastCDN').checked, SearchByInitials:$('#setInitials').checked,
+    WatchEnabled:$('#setWatch').checked, MergeVersionsInFolder:$('#setMergeFolder').checked, MergeVersionsAcrossLibraries:$('#setMergeLibs').checked };
+  try{ const r=await api('/admin/enhancements',{method:'PUT',body:JSON.stringify(body)}); $('#enhInfo').textContent='已保存 · 服务器名:'+r.ServerName; }catch(e){ alert('保存失败：'+e.message); }
+};
+async function loadProxy(){
+  try{ const e=await api('/admin/enhancements');
+    $('#pxProxyDebug').checked=!!e.ProxyDebug; $('#pxPorts').value=(e.ThirdPartyProxyPorts||[]).join(','); $('#pxInfo').textContent='—';
+  }catch(e){}
+}
+$('#saveProxyBtn').onclick=async()=>{
+  const ports=($('#pxPorts').value||'').split(',').map(s=>parseInt(s.trim(),10)).filter(n=>!isNaN(n));
+  try{ await api('/admin/enhancements',{method:'PUT',body:JSON.stringify({ProxyDebug:$('#pxProxyDebug').checked,ThirdPartyProxyPorts:ports})}); $('#pxInfo').textContent='已保存'; }catch(e){ alert('保存失败：'+e.message); }
+};
+
+/* ---------- API ---------- */
+function loadApi(){
+  const base=location.origin; $('#apiBase').textContent=base;
+  $('#apiSample').textContent='# 登录\ncurl -X POST '+base+'/Users/AuthenticateByName -H "Content-Type: application/json" -d \'{"Username":"admin","Pw":"admin"}\'\n\n# 用 token 访问\ncurl '+base+'/Users/<userId>/Items?Recursive=true -H "X-Emby-Token: <token>"\n\n# PlaybackInfo\ncurl -X POST '+base+'/Items/<itemId>/PlaybackInfo -H "X-Emby-Token: <token>" -H "Content-Type: application/json" -d \'{}\'';
+}
+
+/* ---------- 操作（探测/刮削/同步/重扫） ---------- */
+async function op(kind, after){
+  try{
+    if(kind==='rescan'){ await api('/Library/Refresh',{method:'POST',body:'{}'}); }
+    else if(kind==='probe'){ await api('/admin/probe',{method:'POST',body:'{}'}); }
+    else if(kind==='scrape'){ await api('/admin/scrape',{method:'POST',body:'{}'}); }
+    else if(kind==='sync'){ await api('/admin/xiaoya/sync',{method:'POST',body:'{}'}); }
+    if(after) setTimeout(after, 1200);
+  }catch(e){ alert('操作失败：'+e.message); }
+}
+document.querySelectorAll('[data-op]').forEach(b=>b.onclick=()=>op(b.dataset.op));
+
+/* ---------- 详情/播放 ---------- */
+async function openDetail(id){
+  try{
+    const it=await api('/Items/'+id); state.current=it;
+    $('#mTitle').textContent=it.Name;
+    $('#mSub').textContent=(it.Type==='Series'?'剧集':it.Type==='Episode'?'剧集':'电影')+(it.ProductionYear?' · '+it.ProductionYear:'')+(it.Container?' · '+it.Container:'');
+    $('#mDesc').textContent=it.Overview||'暂无简介。';
+    $('#mPoster').src='/Items/'+it.Id+'/Images/Primary?maxWidth=300&api_key='+encodeURIComponent(state.token);
+    const player=$('#player'); player.classList.add('hidden'); player.removeAttribute('src'); player.load();
+    const pb=$('#playBtn'); pb.classList.remove('hidden');
+    if(it.Type==='Series'||it.Type==='Season'||it.IsFolder){ pb.textContent='查看内容'; pb.onclick=()=>browseChildren(it); }
+    else { pb.textContent='▶ 播放'; pb.onclick=()=>playItem(it); }
+    $('#modal').classList.add('show');
+  }catch(e){ alert('打开失败：'+e.message); }
+}
+async function browseChildren(it){
+  const res=await api('/Users/'+state.user.Id+'/Items?ParentId='+it.Id+'&Recursive=false');
+  const items=res.Items||[];
+  if(items.length===1 && items[0].Type==='Season') return browseChildren(items[0]);
+  const playable=items.find(x=>x.Type==='Episode'||x.Type==='Movie');
+  if(playable && items.length===1) return openDetail(playable.Id);
+}
+async function playItem(it){
+  try{
+    const info=await api('/Items/'+it.Id+'/PlaybackInfo',{method:'POST',body:'{}'});
+    const src=(info.MediaSources&&info.MediaSources[0]&&info.MediaSources[0].DirectStreamUrl)||'';
+    if(!src){ alert('无媒体源'); return; }
+    const player=$('#player'); player.classList.remove('hidden'); player.src=src; $('#playBtn').classList.add('hidden'); player.play().catch(()=>{});
+  }catch(e){ alert('播放失败：'+e.message); }
+}
+$('#modalClose').onclick=()=>{ $('#modal').classList.remove('show'); const p=$('#player'); if(p){p.pause();} };
+$('#posterFile').onchange=async ev=>{
+  const f=ev.target.files[0]; if(!f||!state.current)return;
+  try{ const buf=await f.arrayBuffer(); const r=await fetch('/Items/'+state.current.Id+'/Images/Primary',{method:'POST',headers:{'X-Emby-Token':state.token,'Content-Type':f.type||'image/jpeg'},body:buf}); if(!r.ok)throw new Error('HTTP '+r.status); $('#mPoster').src='/Items/'+state.current.Id+'/Images/Primary?maxWidth=300&api_key='+encodeURIComponent(state.token)+'&t='+Date.now(); alert('海报已上传'); }catch(e){ alert('上传失败：'+e.message); }
 };
 
 /* ---------- 初始化 ---------- */
-$('#loginBtn').onclick = doLogin;
-$('#loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
-$('#logoutBtn').onclick = logout;
-
-document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-  t.classList.add('active');
-  const tab = t.dataset.tab;
-  $('#tab-library').classList.toggle('hidden', tab!=='library');
-  $('#tab-admin').classList.toggle('hidden', tab!=='admin');
-  $('#tab-files').classList.toggle('hidden', tab!=='files');
-  if(tab==='admin') loadAdmin();
-  if(tab==='files') loadFiles($('#filePath').value || '/');
-});
-
 (function init(){
-  applyLang();
-  const savedUser = localStorage.getItem('ge_user');
-  if(state.token && savedUser){
-    state.user = JSON.parse(savedUser);
-    enterApp();
-    // 校验令牌是否仍有效
-    api('/Users/Me').then(u=>{ state.user=u; localStorage.setItem('ge_user',JSON.stringify(u)); $('#who').textContent=u.Name+(u.IsAdmin?' · 管理员':''); })
-      .catch(()=>logout());
-  }
+  const su=localStorage.getItem('ge_user');
+  if(state.token && su){ state.user=JSON.parse(su); enterApp(); api('/Users/Me').then(u=>{state.user=u;localStorage.setItem('ge_user',JSON.stringify(u));$('#who').textContent=u.Name+(u.IsAdmin?' · 管理员':'');}).catch(()=>logout()); }
 })();
 </script>
 </body>
