@@ -256,10 +256,8 @@
           <div class="setrow"><div class="sc-open-manual" style="cursor:pointer"><div class="settitle">手动刮削 ＞</div><div class="setdesc">按当前配置执行手动刮削任务</div></div><label class="switch"><input type="checkbox" id="scManual"><span></span></label></div>
         </div>
         <div class="panel">
-          <div class="setrow"><div><div class="settitle">刮削器（至少选择一个）</div><div class="setdesc">选择元数据与图片来源</div></div><div id="scProviders"></div></div>
-          <div class="setrow"><div><div class="settitle">覆盖策略</div><div class="setdesc">设置已有 NFO 和图片的处理方式</div></div>
-            <select id="scOverwrite" style="min-width:160px"><option value="skip">跳过已有文件</option><option value="missing">只补缺失</option><option value="overwrite">全部覆盖</option></select>
-          </div>
+          <div class="setrow"><div class="sc-open-scraper" style="cursor:pointer"><div class="settitle">刮削器（至少选择一个）</div><div class="setdesc">选择元数据与图片来源</div></div><span class="tag" id="scraperSummary">—</span></div>
+          <div class="setrow"><div class="sc-open-ow" style="cursor:pointer"><div class="settitle">覆盖策略 ＞</div><div class="setdesc">设置已有 NFO 和图片的处理方式</div></div><span class="tag" id="owSummary">—</span></div>
         </div>
         <div class="panel">
           <h3>当前任务</h3>
@@ -470,6 +468,26 @@
     <div class="row-flex" style="justify-content:space-between"><h3 style="margin:0">手动刮削</h3><button id="mnBack">返回</button></div>
     <div class="setrow" style="margin-top:10px"><div><div class="settitle">手动刮削</div><div class="setdesc">允许按选择目录生成一次性刮削任务</div></div><label class="switch"><input type="checkbox" id="mnLive"><span></span></label></div>
     <div class="setrow"><div style="cursor:pointer" id="mnDirs"><div class="settitle">选择目录 ＞</div><div class="setdesc">选择需要手动刮削的父目录或子目录</div></div><span class="tag" id="mnCount">已选择 0 个</span></div>
+  </div>
+</div>
+
+<!-- 刮削器 -->
+<div class="dialog" id="scraperDlg">
+  <div class="box" style="width:620px">
+    <div class="row-flex" style="justify-content:space-between"><h3 style="margin:0">刮削器</h3><button id="scrBack">返回</button></div>
+    <div id="scraperList" style="margin-top:14px"></div>
+    <p class="muted" style="font-size:12px;margin-top:14px">至少开启一个刮削器。拖动 ≡ 调整优先级；仅处理已勾选的内容，前面的先执行，后面的只补充缺失信息，并遵循覆盖或跳过策略。Fanart.tv / Bangumi 需接入后才可用（当前未实现）。</p>
+  </div>
+</div>
+
+<!-- 覆盖策略 -->
+<div class="dialog" id="owDlg">
+  <div class="box" style="width:620px">
+    <h3>覆盖策略</h3>
+    <p class="muted" style="margin:4px 0 12px">NFO 和图片处理方式</p>
+    <div id="owList"></div>
+    <p class="muted" style="font-size:12px;margin-top:14px">仅处理刮削范围内已勾选的内容。覆盖：已有的重新获取并替换，缺少的新增，即使内容相同也覆盖。跳过：已有的直接跳过，不比较内容，仅补充缺少的文件。获取失败时保留原文件。</p>
+    <div class="row-flex" style="justify-content:flex-end;margin-top:16px"><button id="owCancel">取消</button><button class="primary" id="owSave">保存</button></div>
   </div>
 </div>
 
@@ -711,9 +729,9 @@ async function loadScrape(){
   try{
     const cfg=await api('/admin/scrape/config');
     $('#scEnabled').checked=!!cfg.Enabled; $('#scAuto').checked=!!cfg.Auto; $('#scManual').checked=!!cfg.Manual;
-    $('#scOverwrite').value=cfg.Overwrite||'skip';
+    owSel=cfg.Overwrite||'skip'; updateOwSummary();
     scProvidersSel=(cfg.Providers||[]).slice();
-    renderProviders(cfg.Available||{});
+    updateScraperSummary();
     await refreshScrapeStatus();
   }catch(e){ $('#scTaskState').textContent='加载失败：'+e.message; }
 }
@@ -731,10 +749,23 @@ async function refreshScrapeStatus(){
   $('#scLogs').innerHTML=logs.length?logs.map(l=>'<tr><td class="muted">'+esc((l.Date||'').replace('T',' ').slice(0,19))+'</td><td>'+esc(l.Name)+'</td><td class="muted">'+esc(l.ShortOverview||'')+'</td></tr>').join(''):'<tr><td colspan="3" class="empty">暂无任务摘要</td></tr>';
 }
 function scSave(patch){ return api('/admin/scrape/config',{method:'PUT',body:JSON.stringify(patch)}); }
+/* 覆盖策略弹窗 */
+const OW_LABELS={skip:'跳过已有文件',missing:'只补缺失文件',overwrite:'全部覆盖'};
+let owSel='skip';
+function updateOwSummary(){ const el=$('#owSummary'); if(el) el.textContent=OW_LABELS[owSel]||owSel; }
+async function openOverwrite(){
+  const cfg=await api('/admin/scrape/config'); owSel=cfg.Overwrite||'skip'; renderOverwrite(); updateOwSummary(); $('#owDlg').classList.add('show');
+}
+function renderOverwrite(){
+  $('#owList').innerHTML=['overwrite','missing','skip'].map(k=>'<div class="sortrow" data-ow="'+k+'" style="cursor:pointer"><span class="sname" style="flex:1;color:'+(owSel===k?'var(--fg)':'var(--muted)')+'">'+OW_LABELS[k]+'</span>'+(owSel===k?'<span style="color:var(--ok)">✓</span>':'')+'</div>').join('');
+  document.querySelectorAll('#owList [data-ow]').forEach(r=>r.onclick=()=>{ owSel=r.dataset.ow; renderOverwrite(); });
+}
+$('#owCancel').onclick=()=>$('#owDlg').classList.remove('show');
+$('#owSave').onclick=async()=>{ try{ await scSave({Overwrite:owSel}); updateOwSummary(); $('#owDlg').classList.remove('show'); }catch(e){ alert('保存失败：'+e.message); } };
+document.querySelector('.sc-open-ow').onclick=openOverwrite;
 $('#scEnabled').onchange=()=>scSave({Enabled:$('#scEnabled').checked});
 $('#scAuto').onchange=()=>scSave({Auto:$('#scAuto').checked});
 $('#scManual').onchange=()=>scSave({Manual:$('#scManual').checked});
-$('#scOverwrite').onchange=()=>scSave({Overwrite:$('#scOverwrite').value});
 $('#scStart').onclick=async()=>{ try{ await api('/admin/scrape/start',{method:'POST',body:'{}'}); refreshScrapeStatus(); }catch(e){alert('开始失败：'+e.message)} };
 $('#scStop').onclick=async()=>{ try{ await api('/admin/scrape/stop',{method:'POST',body:'{}'}); refreshScrapeStatus(); }catch(e){alert(e.message)} };
 $('#scRetry').onclick=async()=>{ try{ await api('/admin/scrape/retry',{method:'POST',body:'{}'}); refreshScrapeStatus(); }catch(e){alert(e.message)} };
@@ -813,6 +844,28 @@ $('#mnBack').onclick=()=>$('#manualDlg').classList.remove('show');
 $('#mnLive').onchange=()=>api('/admin/scrape/config',{method:'PUT',body:JSON.stringify({Manual:$('#mnLive').checked})});
 document.querySelector('.sc-open-manual').onclick=openManual;
 $('#mnDirs').onclick=()=>openDirPicker('manual');
+
+/* 刮削器优先级弹窗 */
+const SCRAPER_LABELS={tmdb:'TMDB',douban:'豆瓣',fanart:'Fanart.tv',bangumi:'Bangumi'};
+function updateScraperSummary(){ const el=$('#scraperSummary'); if(el) el.textContent=(scProvidersSel||[]).map(k=>SCRAPER_LABELS[k]||k).join(', ')||'未选择'; }
+let scraperAvail={}, scraperOrder=[];
+async function openScraper(){
+  const cfg=await api('/admin/scrape/config'); scraperAvail=cfg.Available||{};
+  scProvidersSel=(cfg.Providers||[]).slice();
+  const all=['tmdb','douban','fanart','bangumi'];
+  scraperOrder=scProvidersSel.slice(); all.forEach(k=>{ if(!scraperOrder.includes(k)) scraperOrder.push(k); });
+  renderScrapers(); $('#scraperDlg').classList.add('show');
+}
+function renderScrapers(){
+  const box=$('#scraperList');
+  box.innerHTML=scraperOrder.map((k,i)=>{ const avail=!!scraperAvail[k]; const sel=scProvidersSel.includes(k); return '<div class="sortrow" draggable="true" data-i="'+i+'" style="cursor:grab"><span class="handle">≡</span><input type="checkbox" data-scr="'+k+'" '+(sel?'checked':'')+' '+(avail?'':'disabled')+' style="margin-left:6px"><span class="sname" style="flex:1;color:'+(avail?'var(--fg)':'var(--muted)')+'">'+(SCRAPER_LABELS[k]||k)+(avail?'':' （未配置/未实现）')+'</span></div>'; }).join('');
+  box.querySelectorAll('[data-scr]').forEach(cb=>cb.onchange=()=>{ const k=cb.dataset.scr; if(cb.checked){ if(!scProvidersSel.includes(k)) scProvidersSel.push(k); } else { scProvidersSel=scProvidersSel.filter(x=>x!==k); if(!scProvidersSel.length){ scProvidersSel=[k]; cb.checked=true; alert('至少保留一个刮削器'); return; } } saveScraper(); });
+  bindScraperDrag();
+}
+function bindScraperDrag(){ const rows=[...document.querySelectorAll('#scraperList .sortrow')]; let dragIdx=null; rows.forEach(r=>{ r.addEventListener('dragstart',()=>{dragIdx=+r.dataset.i;r.classList.add('dragging');}); r.addEventListener('dragend',()=>{r.classList.remove('dragging');rows.forEach(x=>x.classList.remove('over'));}); r.addEventListener('dragover',e=>{e.preventDefault();rows.forEach(x=>x.classList.remove('over'));r.classList.add('over');}); r.addEventListener('drop',e=>{e.preventDefault();const t=+r.dataset.i;if(dragIdx==null||dragIdx===t)return;const m=scraperOrder.splice(dragIdx,1)[0];scraperOrder.splice(t,0,m);renderScrapers();saveScraper();dragIdx=null;}); }); }
+function saveScraper(){ const ordered=scraperOrder.filter(k=>scProvidersSel.includes(k)); updateScraperSummary(); return api('/admin/scrape/config',{method:'PUT',body:JSON.stringify({Providers:ordered})}).catch(()=>{}); }
+$('#scrBack').onclick=()=>$('#scraperDlg').classList.remove('show');
+document.querySelector('.sc-open-scraper').onclick=openScraper;
 setInterval(()=>{ if(state.sec==='scrape'){ refreshScrapeStatus().catch(()=>{}); } if(state.sec==='probe'){ refreshProbeStatus().catch(()=>{}); } }, 3000);
 let prCfg={};
 async function loadProbe(){

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -302,18 +303,14 @@ func (a *App) handleScrapeAPI(w http.ResponseWriter, r *http.Request, u *User) {
 func (a *App) scrapeConfig(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		avail := a.scraperStatus()
-		sel := a.scrapeSelectedSet()
-		providers := []string{}
-		if sel == nil {
+		providers := splitCSV(a.store.setting("scrape_providers"))
+		if len(providers) == 0 {
 			for name, on := range avail {
 				if on {
 					providers = append(providers, name)
 				}
 			}
-		} else {
-			for name := range sel {
-				providers = append(providers, name)
-			}
+			sort.Strings(providers)
 		}
 		writeJSON(w, http.StatusOK, map[string]any{
 			"Enabled":     a.store.settingBool("scrape_enabled", true),
