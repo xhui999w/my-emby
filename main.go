@@ -262,6 +262,16 @@ func (a *App) serve(w http.ResponseWriter, r *http.Request) {
 		a.store.requireAdmin(a.handleScrapeAPI)(w, r)
 	case path == "/admin/probe" || strings.HasPrefix(path, "/admin/probe/"):
 		a.store.requireAdmin(a.handleProbeAPI)(w, r)
+	case path == "/admin/subtitle-config" || strings.HasPrefix(path, "/admin/subtitle-config/"):
+		a.store.requireAdmin(a.handleSubConfigAPI)(w, r)
+	case path == "/admin/tmdb-config" || strings.HasPrefix(path, "/admin/tmdb-config/"):
+		a.store.requireAdmin(a.handleTmdbConfigAPI)(w, r)
+	case path == "/admin/tg-config" || strings.HasPrefix(path, "/admin/tg-config/"):
+		a.store.requireAdmin(a.handleTgConfigAPI)(w, r)
+	case path == "/admin/intro-config" || strings.HasPrefix(path, "/admin/intro-config/"):
+		a.store.requireAdmin(a.handleIntroConfigAPI)(w, r)
+	case path == "/admin/proxy-config" || strings.HasPrefix(path, "/admin/proxy-config/"):
+		a.store.requireAdmin(a.handleProxyConfigAPI)(w, r)
 	case path == "/api/files" || strings.HasPrefix(path, "/api/files/"):
 		a.store.requireAdmin(a.handleFiles)(w, r)
 	case path == "/Users" || strings.HasPrefix(path, "/Users/"):

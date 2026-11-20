@@ -164,7 +164,12 @@
       <a class="nav" data-sec="users">☺ 用户权限</a>
       <a class="nav" id="enhToggle">✳ 增强功能 ▾</a>
       <div class="sub" id="enhSub">
-        <a class="nav" data-sec="enh-set">设置 · 字幕 · TMDB · Bot · 片头片尾 · 代理</a>
+        <a class="nav" data-sec="enh-set">✳ 增强设置</a>
+        <a class="nav" data-sec="enh-sub">☰ 字幕增强</a>
+        <a class="nav" data-sec="enh-tmdb">✧ TMDB</a>
+        <a class="nav" data-sec="enh-bot">☺ Telegram Bot</a>
+        <a class="nav" data-sec="enh-intro">≣ 片头片尾</a>
+        <a class="nav" data-sec="enh-proxy">🌐 代理设置</a>
       </div>
       <a class="nav" data-sec="api">‹/› API</a>
     </aside>
@@ -339,35 +344,79 @@
         </div>
       </section>
 
-      <!-- 增强功能 > 代理 -->
-      <section id="sec-enh-proxy" class="pane hidden">
-        <h2>增强功能 · 代理</h2>
+      <!-- 增强功能 > 字幕增强 -->
+      <section id="sec-enh-sub" class="pane hidden">
+        <h2>字幕增强</h2>
         <div class="panel">
-          <div class="row-flex" style="gap:14px;align-items:center;flex-wrap:wrap">
-            <label class="chk"><input type="checkbox" id="pxProxyDebug" /> 代理调试日志</label>
-            <label>第三方反代端口（逗号分隔，最多32个）<input id="pxPorts" style="width:260px" placeholder="9000,9001" /></label>
-            <button class="primary" id="saveProxyBtn">保存</button>
-            <span class="tag" id="pxInfo">—</span>
-          </div>
+          <div class="setrow"><div><div class="settitle">自动匹配</div><div class="setdesc">自动匹配中文字幕，优先使用简体中文</div></div><label class="switch"><input type="checkbox" id="subAuto"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">自动清理</div><div class="setdesc">播放结束后自动清除字幕缓存</div></div><label class="switch"><input type="checkbox" id="subClean"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">保存到视频目录</div><div class="setdesc">将外挂字幕保存到视频所在目录</div></div><label class="switch"><input type="checkbox" id="subSave"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">ASSRT Token</div></div><input id="subToken" placeholder="输入 ASSRT API Token" style="width:320px" /></div>
+          <div class="setrow"><div><div class="settitle">字幕缓存目录</div></div><div class="row-flex"><input id="subDir" style="width:320px" /><button id="subDirPick">选择</button></div></div>
+          <p class="muted" style="font-size:12px;margin-top:8px">字幕服务由 assrt.net 提供；ASSRT 在线下载当前未接入，本页保存配置并管理缓存。外挂字幕识别/转换已随视频自动生效。</p>
+          <div class="row-flex" style="margin-top:14px"><button class="primary" id="subSave" style="background:#c0392b;border-color:#c0392b">保存</button><button id="subClear">🗑 清除字幕缓存</button><span class="tag" id="subInfo">—</span></div>
+        </div>
+      </section>
+      <section id="sec-enh-tmdb" class="pane hidden">
+        <h2>TMDB 管理</h2>
+        <div class="panel">
+          <div class="setrow"><div><div class="settitle">TMDB API 基础地址</div></div><input id="tmdbBase" style="width:420px" /></div>
+          <div class="setrow"><div><div class="settitle">API Key / Read Access Token</div><div class="setdesc">输入 TMDB 密钥；无鉴权代理可留空</div></div><input id="tmdbKey" placeholder="输入 TMDB 密钥" style="width:420px" /></div>
+          <div class="setrow"><div><div class="settitle">缓存目录</div><div class="setdesc">目录须位于数据目录下；缓存跨重启复用</div></div><div class="row-flex"><input id="tmdbDir" style="width:320px" /><button id="tmdbDirPick">选择</button></div></div>
+          <div class="setrow"><div><div class="settitle">请求频率（次/秒）</div><div class="setdesc">默认 15 次/秒，可调整</div></div><input id="tmdbRate" type="number" min="1" max="60" style="width:90px" /></div>
+          <div class="row-flex" style="margin-top:14px"><button class="primary" id="tmdbSave" style="background:#c0392b;border-color:#c0392b">保存设置</button><button id="tmdbClear">🗑 清除缓存</button><span class="tag" id="tmdbCfgInfo">—</span></div>
+          <p class="muted" style="font-size:12px;margin-top:8px">保存后立即对后续刮削生效（无需重启）。此处密钥优先于环境变量 TMDB_API_KEY。</p>
+        </div>
+      </section>
+      <section id="sec-enh-bot" class="pane hidden">
+        <h2>Telegram Bot</h2>
+        <div class="panel">
+          <div class="setrow"><div><div class="settitle">启用 Telegram Bot</div></div><label class="switch"><input type="checkbox" id="tgEnabled"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">Bot Token</div></div><input id="tgToken" placeholder="输入 Bot Token" style="width:420px" /></div>
+          <div class="setrow"><div><div class="settitle">User / Chat ID</div></div><input id="tgChat" style="width:420px" /></div>
+          <div class="setrow"><div><div class="settitle">启用通知</div></div><label class="switch"><input type="checkbox" id="tgNotify"><span></span></label></div>
+          <p class="muted" style="font-size:12px;margin-top:8px">先与机器人开始对话。测试发送会保存当前设置；留空 Token 会保留已保存的值。</p>
+          <div class="row-flex" style="margin-top:14px;justify-content:flex-end"><button id="tgTest">测试发送</button><button class="primary" id="tgSave" style="background:#c0392b;border-color:#c0392b">保存设置</button><span class="tag" id="tgInfo">—</span></div>
+        </div>
+      </section>
+      <section id="sec-enh-intro" class="pane hidden">
+        <h2>片头片尾</h2>
+        <div class="panel">
+          <div class="setrow"><div><div class="settitle">片头片尾</div><div class="setdesc">启用片头片尾识别功能</div></div><label class="switch"><input type="checkbox" id="inEnabled"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">学习片头</div><div class="setdesc">根据剧集播放行为自动学习片头位置</div></div><label class="switch"><input type="checkbox" id="inLearnIntro"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">学习片尾</div><div class="setdesc">根据剧集播放行为自动学习片尾位置</div></div><label class="switch"><input type="checkbox" id="inLearnCredits"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">跳过片头</div><div class="setdesc">向支持的客户端提供片头跳过信息</div></div><label class="switch"><input type="checkbox" id="inSkipIntro"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">跳过片尾</div><div class="setdesc">向支持的客户端提供片尾跳过信息</div></div><label class="switch"><input type="checkbox" id="inSkipCredits"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">片头探测窗口（分钟）</div></div><input id="inWindow" type="number" style="width:90px" /></div>
+          <div class="setrow"><div><div class="settitle">最小有效样本</div></div><input id="inMin" type="number" style="width:90px" /></div>
+          <div class="setrow"><div><div class="settitle">候选误差（秒）</div></div><input id="inTol" type="number" style="width:90px" /></div>
+          <div class="setrow"><div><div class="settitle">片头片尾数据目录</div></div><div class="row-flex"><input id="inDir" style="width:320px" /><button id="inDirPick">选择</button></div></div>
+          <p class="muted" style="font-size:12px;margin-top:8px">片头片尾识别逻辑当前未实现；本页保存配置与学习记录管理，为后续接入预留。</p>
+          <div class="row-flex" style="margin-top:14px"><button class="primary" id="inSave" style="background:#c0392b;border-color:#c0392b">保存</button><button id="inClear">清除学习记录</button><span class="tag" id="inInfo">—</span></div>
         </div>
       </section>
 
-      <!-- 增强功能 > 字幕 / TMDB / Bot / 片头片尾 -->
-      <section id="sec-enh-sub" class="pane hidden">
-        <h2>增强功能 · 字幕</h2>
-        <div class="panel"><p class="muted">外挂字幕自动识别（srt/ass/ssa/vtt/sub）、语言识别、SRT↔VTT 转换、UTF-16 解码，随视频自动生效，无需额外配置。</p></div>
-      </section>
-      <section id="sec-enh-tmdb" class="pane hidden">
-        <h2>增强功能 · TMDB / 豆瓣</h2>
-        <div class="panel"><p class="muted" id="tmdbInfo">—</p><p class="muted">通过环境变量配置：`TMDB_API_KEY`、`TMDB_LANGUAGE`、`DOUBAN_ENABLED`、`DOUBAN_BASE`。</p></div>
-      </section>
-      <section id="sec-enh-bot" class="pane hidden">
-        <h2>增强功能 · Bot</h2>
-        <div class="panel"><p class="muted">未实现（占位）。可用于 Telegram/机器人管理，后续可扩展。</p></div>
-      </section>
-      <section id="sec-enh-intro" class="pane hidden">
-        <h2>增强功能 · 片头片尾</h2>
-        <div class="panel"><p class="muted">未实现（占位）。可用于片头/片尾检测与跳过，后续可扩展。</p></div>
+      <!-- 增强功能 > 代理设置 -->
+      <section id="sec-enh-proxy" class="pane hidden">
+        <h2>代理设置</h2>
+        <div class="panel">
+          <div class="setrow"><div><div class="settitle">启用代理</div></div><label class="switch"><input type="checkbox" id="pxEnabled"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">代理类型</div></div><select id="pxType" style="width:160px"><option value="http">HTTP</option><option value="socks5">SOCKS5</option></select></div>
+          <div class="setrow"><div><div class="settitle">代理地址</div></div><input id="pxAddr" placeholder="http://192.168.1.1:7890" style="width:320px" /></div>
+          <div class="setrow"><div><div class="settitle">用户名（可选）</div></div><input id="pxUser" style="width:260px" /></div>
+          <div class="setrow"><div><div class="settitle">密码（可选）</div><div class="setdesc">留空则不使用密码</div></div><input id="pxPass" type="password" style="width:260px" /></div>
+          <div class="panel" style="margin:14px 0 0">
+            <h3>代理范围</h3>
+            <div class="setrow"><div class="settitle">TMDB</div><label class="switch"><input type="checkbox" id="pxScTmdb"><span></span></label></div>
+            <div class="setrow"><div class="settitle">Telegram Bot</div><label class="switch"><input type="checkbox" id="pxScTg"><span></span></label></div>
+            <div class="setrow"><div class="settitle">字幕</div><label class="switch"><input type="checkbox" id="pxScSub"><span></span></label></div>
+            <div class="setrow"><div class="settitle">更新检测</div><label class="switch"><input type="checkbox" id="pxScUpdate"><span></span></label></div>
+            <div class="setrow"><div class="settitle">授权服务</div><label class="switch"><input type="checkbox" id="pxScLicense"><span></span></label></div>
+            <div class="setrow"><div class="settitle">其它外部 HTTP</div><label class="switch"><input type="checkbox" id="pxScOther"><span></span></label></div>
+            <p class="muted" style="font-size:12px">仅影响服务主动发出的外部 API 请求。播放源和视频流继续使用原有连接。</p>
+          </div>
+          <div class="row-flex" style="margin-top:14px"><button class="primary" id="pxSave" style="background:#c0392b;border-color:#c0392b">保存</button><button id="pxTest">测试连接</button><span class="tag" id="pxInfo">—</span></div>
+        </div>
       </section>
 
       <!-- API -->
@@ -539,8 +588,11 @@ function show(sec){
   else if(sec==='probe') loadProbe();
   else if(sec==='users') loadUsers();
   else if(sec==='enh-set') loadEnhancements();
-  else if(sec==='enh-proxy') loadProxy();
-  else if(sec==='enh-tmdb') loadTmdb();
+  else if(sec==='enh-sub') loadSubCfg();
+  else if(sec==='enh-tmdb') loadTmdbCfg();
+  else if(sec==='enh-bot') loadTgCfg();
+  else if(sec==='enh-intro') loadIntroCfg();
+  else if(sec==='enh-proxy') loadProxyCfg();
   else if(sec==='api') loadApi();
 }
 document.querySelectorAll('.sidebar .nav[data-sec]').forEach(n=> n.onclick=()=>show(n.dataset.sec));
@@ -661,6 +713,9 @@ $('#dirCancel').onclick=()=>$('#dirDlg').classList.remove('show');
 $('#dirPick').onclick=async()=>{
   if(dirMode==='manual'){ if(!manDirs.includes(dirCur)) manDirs.push(dirCur); $('#dirDlg').classList.remove('show'); $('#mnCount').textContent='已选择 '+manDirs.length+' 个'; api('/admin/scrape/config',{method:'PUT',body:JSON.stringify({ManualDirs:manDirs})}).catch(()=>{}); return; }
   if(dirMode==='probe'){ $('#prDir').value=dirCur; $('#dirDlg').classList.remove('show'); return; }
+  if(dirMode==='subdir'){ $('#subDir').value=dirCur; $('#dirDlg').classList.remove('show'); return; }
+  if(dirMode==='tmdbdir'){ $('#tmdbDir').value=dirCur; $('#dirDlg').classList.remove('show'); return; }
+  if(dirMode==='introdir'){ $('#inDir').value=dirCur; $('#dirDlg').classList.remove('show'); return; }
   if(dirMode==='batch'){ $('#dirDlg').classList.remove('show'); await createBatch(dirCur); return; }
   if(!libSelectedPaths.includes(dirCur)) libSelectedPaths.push(dirCur); renderLibPaths(); $('#dirDlg').classList.remove('show');
 };
@@ -922,26 +977,80 @@ $('#createUserBtn').onclick=async()=>{ const name=$('#newUserName').value.trim()
 async function loadEnhancements(){
   try{ const e=await api('/admin/enhancements');
     $('#setServerName').value=e.ServerName||''; $('#setScanConc').value=e.ScanConcurrency||1; $('#setWatchDelay').value=e.WatchDelaySeconds||30;
-    $('#setProxyDebug').checked=!!e.ProxyDebug; $('#setFastCDN').checked=!!e.FastCDN; $('#setInitials').checked=!!e.SearchByInitials;
+    $('#setProxyDebug').checked=!!e.ProxyDebug; $('#setInitials').checked=!!e.SearchByInitials;
     $('#setWatch').checked=!!e.WatchEnabled; $('#setMergeFolder').checked=!!e.MergeVersionsInFolder; $('#setMergeLibs').checked=!!e.MergeVersionsAcrossLibraries;
-    $('#enhInfo').textContent='保存后即时生效';
-  }catch(e){ $('#enhInfo').textContent='加载失败：'+e.message; }
+    $('#setHideActors').checked=!!e.HideMissingActorImages;
+    $('#setVirtualLib').checked=!!e.VirtualLibrary; $('#setTheme').checked=!!e.Theme; $('#setTmdbStartup').checked=!!e.TmdbStartup;
+    $('#setTrakt').checked=!!e.Trakt; $('#setPerf').checked=!!e.PerformanceMode; $('#setBadge').checked=!!e.PosterBadge; $('#setFastPath').checked=!!e.FastPath;
+  }catch(e){ alert('加载增强设置失败：'+e.message); }
 }
 $('#saveEnhBtn').onclick=async()=>{
   const body={ ServerName:$('#setServerName').value.trim(), ScanConcurrency:parseInt($('#setScanConc').value,10)||1, WatchDelaySeconds:parseInt($('#setWatchDelay').value,10)||30,
-    ProxyDebug:$('#setProxyDebug').checked, FastCDN:$('#setFastCDN').checked, SearchByInitials:$('#setInitials').checked,
-    WatchEnabled:$('#setWatch').checked, MergeVersionsInFolder:$('#setMergeFolder').checked, MergeVersionsAcrossLibraries:$('#setMergeLibs').checked };
-  try{ const r=await api('/admin/enhancements',{method:'PUT',body:JSON.stringify(body)}); $('#enhInfo').textContent='已保存 · 服务器名:'+r.ServerName; }catch(e){ alert('保存失败：'+e.message); }
+    ProxyDebug:$('#setProxyDebug').checked, SearchByInitials:$('#setInitials').checked,
+    WatchEnabled:$('#setWatch').checked, MergeVersionsInFolder:$('#setMergeFolder').checked, MergeVersionsAcrossLibraries:$('#setMergeLibs').checked,
+    HideMissingActorImages:$('#setHideActors').checked,
+    VirtualLibrary:$('#setVirtualLib').checked, Theme:$('#setTheme').checked, TmdbStartup:$('#setTmdbStartup').checked,
+    Trakt:$('#setTrakt').checked, PerformanceMode:$('#setPerf').checked, PosterBadge:$('#setBadge').checked, FastPath:$('#setFastPath').checked };
+  try{ const r=await api('/admin/enhancements',{method:'PUT',body:JSON.stringify(body)}); alert('设置已保存 · 服务器名:'+r.ServerName); }catch(e){ alert('保存失败：'+e.message); }
 };
-async function loadProxy(){
-  try{ const e=await api('/admin/enhancements');
-    $('#pxProxyDebug').checked=!!e.ProxyDebug; $('#pxPorts').value=(e.ThirdPartyProxyPorts||[]).join(','); $('#pxInfo').textContent='—';
-  }catch(e){}
+
+/* ---------- 字幕增强 ---------- */
+async function loadSubCfg(){
+  try{ const c=await api('/admin/subtitle-config');
+    $('#subAuto').checked=!!c.AutoMatch; $('#subClean').checked=!!c.AutoClean; $('#subSave').checked=!!c.SaveToVideo;
+    $('#subToken').value=c.Token||''; $('#subDir').value=c.CacheDir||''; $('#subInfo').textContent='—';
+  }catch(e){ $('#subInfo').textContent='加载失败：'+e.message; }
 }
-$('#saveProxyBtn').onclick=async()=>{
-  const ports=($('#pxPorts').value||'').split(',').map(s=>parseInt(s.trim(),10)).filter(n=>!isNaN(n));
-  try{ await api('/admin/enhancements',{method:'PUT',body:JSON.stringify({ProxyDebug:$('#pxProxyDebug').checked,ThirdPartyProxyPorts:ports})}); $('#pxInfo').textContent='已保存'; }catch(e){ alert('保存失败：'+e.message); }
-};
+$('#subSave').onclick=async()=>{ try{ await api('/admin/subtitle-config',{method:'PUT',body:JSON.stringify({AutoMatch:$('#subAuto').checked,AutoClean:$('#subClean').checked,SaveToVideo:$('#subSave').checked,Token:$('#subToken').value.trim(),CacheDir:$('#subDir').value.trim()})}); $('#subInfo').textContent='已保存'; }catch(e){ alert('保存失败：'+e.message); } };
+$('#subClear').onclick=async()=>{ try{ const r=await api('/admin/subtitle-config/clear',{method:'POST',body:'{}'}); $('#subInfo').textContent='已清除 '+r.cleared+' 项'; }catch(e){ alert(e.message); } };
+$('#subDirPick').onclick=()=>openDirPicker('subdir');
+
+/* ---------- TMDB 管理 ---------- */
+async function loadTmdbCfg(){
+  try{ const c=await api('/admin/tmdb-config');
+    $('#tmdbBase').value=c.Base||''; $('#tmdbKey').value=c.Key||''; $('#tmdbDir').value=c.CacheDir||''; $('#tmdbRate').value=c.Rate||15; $('#tmdbCfgInfo').textContent='—';
+  }catch(e){ $('#tmdbCfgInfo').textContent='加载失败：'+e.message; }
+}
+$('#tmdbSave').onclick=async()=>{ try{ await api('/admin/tmdb-config',{method:'PUT',body:JSON.stringify({Base:$('#tmdbBase').value.trim(),Key:$('#tmdbKey').value.trim(),CacheDir:$('#tmdbDir').value.trim(),Rate:parseInt($('#tmdbRate').value,10)||15})}); $('#tmdbCfgInfo').textContent='已保存，后续刮削立即生效'; }catch(e){ alert('保存失败：'+e.message); } };
+$('#tmdbClear').onclick=async()=>{ try{ const r=await api('/admin/tmdb-config/clear',{method:'POST',body:'{}'}); $('#tmdbCfgInfo').textContent='已清除 '+r.cleared+' 项'; }catch(e){ alert(e.message); } };
+$('#tmdbDirPick').onclick=()=>openDirPicker('tmdbdir');
+
+/* ---------- Telegram Bot ---------- */
+async function loadTgCfg(){
+  try{ const c=await api('/admin/tg-config');
+    $('#tgEnabled').checked=!!c.Enabled; $('#tgToken').value=c.Token||''; $('#tgChat').value=c.ChatID||''; $('#tgNotify').checked=!!c.Notify; $('#tgInfo').textContent='—';
+  }catch(e){ $('#tgInfo').textContent='加载失败：'+e.message; }
+}
+$('#tgSave').onclick=async()=>{ try{ await api('/admin/tg-config',{method:'PUT',body:JSON.stringify({Enabled:$('#tgEnabled').checked,Token:$('#tgToken').value.trim(),ChatID:$('#tgChat').value.trim(),Notify:$('#tgNotify').checked})}); $('#tgInfo').textContent='已保存'; }catch(e){ alert('保存失败：'+e.message); } };
+$('#tgTest').onclick=async()=>{ try{ await api('/admin/tg-config',{method:'PUT',body:JSON.stringify({Token:$('#tgToken').value.trim(),ChatID:$('#tgChat').value.trim()})}); const r=await api('/admin/tg-config/test',{method:'POST',body:'{}'}); $('#tgInfo').textContent=r.message||'已发送'; }catch(e){ alert('测试发送失败：'+e.message); } };
+
+/* ---------- 片头片尾 ---------- */
+async function loadIntroCfg(){
+  try{ const c=await api('/admin/intro-config');
+    $('#inEnabled').checked=!!c.Enabled; $('#inLearnIntro').checked=!!c.LearnIntro; $('#inLearnCredits').checked=!!c.LearnCredits;
+    $('#inSkipIntro').checked=!!c.SkipIntro; $('#inSkipCredits').checked=!!c.SkipCredits;
+    $('#inWindow').value=c.Window||10; $('#inMin').value=c.MinSamples||3; $('#inTol').value=c.Tolerance||15; $('#inDir').value=c.Dir||''; $('#inInfo').textContent='—';
+  }catch(e){ $('#inInfo').textContent='加载失败：'+e.message; }
+}
+$('#inSave').onclick=async()=>{ try{ await api('/admin/intro-config',{method:'PUT',body:JSON.stringify({Enabled:$('#inEnabled').checked,LearnIntro:$('#inLearnIntro').checked,LearnCredits:$('#inLearnCredits').checked,SkipIntro:$('#inSkipIntro').checked,SkipCredits:$('#inSkipCredits').checked,Window:parseInt($('#inWindow').value,10)||10,MinSamples:parseInt($('#inMin').value,10)||3,Tolerance:parseInt($('#inTol').value,10)||15,Dir:$('#inDir').value.trim()})}); $('#inInfo').textContent='已保存'; }catch(e){ alert('保存失败：'+e.message); } };
+$('#inClear').onclick=async()=>{ try{ const r=await api('/admin/intro-config/clear',{method:'POST',body:'{}'}); $('#inInfo').textContent='已清除 '+r.cleared+' 项'; }catch(e){ alert(e.message); } };
+$('#inDirPick').onclick=()=>openDirPicker('introdir');
+
+/* ---------- 代理设置 ---------- */
+async function loadProxyCfg(){
+  try{ const c=await api('/admin/proxy-config');
+    $('#pxEnabled').checked=!!c.Enabled; $('#pxType').value=c.Type||'http'; $('#pxAddr').value=c.Addr||'';
+    $('#pxUser').value=c.User||''; $('#pxPass').value=c.Pass||'';
+    const sc=c.Scope||{};
+    $('#pxScTmdb').checked=!!sc.Tmdb; $('#pxScTg').checked=!!sc.Tg; $('#pxScSub').checked=!!sc.Subtitle;
+    $('#pxScUpdate').checked=!!sc.Update; $('#pxScLicense').checked=!!sc.License; $('#pxScOther').checked=!!sc.Other;
+    $('#pxInfo').textContent='—';
+  }catch(e){ $('#pxInfo').textContent='加载失败：'+e.message; }
+}
+function pxBody(){ return { Enabled:$('#pxEnabled').checked, Type:$('#pxType').value, Addr:$('#pxAddr').value.trim(), User:$('#pxUser').value.trim(), Pass:$('#pxPass').value,
+  Scope:{ Tmdb:$('#pxScTmdb').checked, Tg:$('#pxScTg').checked, Subtitle:$('#pxScSub').checked, Update:$('#pxScUpdate').checked, License:$('#pxScLicense').checked, Other:$('#pxScOther').checked } }; }
+$('#pxSave').onclick=async()=>{ try{ await api('/admin/proxy-config',{method:'PUT',body:JSON.stringify(pxBody())}); $('#pxInfo').textContent='已保存'; }catch(e){ alert('保存失败：'+e.message); } };
+$('#pxTest').onclick=async()=>{ try{ await api('/admin/proxy-config',{method:'PUT',body:JSON.stringify(pxBody())}); const r=await api('/admin/proxy-config/test',{method:'POST',body:'{}'}); $('#pxInfo').textContent='连接成功 · HTTP '+r.status; }catch(e){ alert('测试失败：'+e.message); } };
 
 /* ---------- API ---------- */
 function loadApi(){

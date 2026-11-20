@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"time"
 )
 
 type scraperProvider struct {
@@ -13,10 +12,10 @@ type scraperProvider struct {
 // scraperProviders 依据配置返回可用刮削源（TMDB 优先，豆瓣兜底）。
 func (a *App) scraperProviders() []scraperProvider {
 	var ps []scraperProvider
-	if t := newTMDB(a.cfg); t != nil {
+	if t := a.newTMDB(); t != nil {
 		ps = append(ps, scraperProvider{"tmdb", func(app *App, it *Item) bool { return app.tmdbEnrich(t, it) }})
 	}
-	if d := newDouban(a.cfg); d != nil {
+	if d := a.newDouban(); d != nil {
 		ps = append(ps, scraperProvider{"douban", func(app *App, it *Item) bool { return app.doubanEnrich(d, it) }})
 	}
 	return ps
@@ -56,7 +55,7 @@ func (a *App) scrapeAll() (int, int) {
 			if p.enrich(a, it) {
 				changed = true
 			}
-			time.Sleep(120 * time.Millisecond)
+			a.scrapeSleep()
 		}
 		if changed {
 			enriched++
@@ -71,5 +70,5 @@ func (a *App) scrapeAll() (int, int) {
 
 // scraperStatus 供后台展示当前可用刮削源。
 func (a *App) scraperStatus() map[string]bool {
-	return map[string]bool{"tmdb": a.cfg.TMDBAPIKey != "", "douban": a.cfg.DoubanEnabled}
+	return map[string]bool{"tmdb": a.effectiveTMDBKey() != "", "douban": a.cfg.DoubanEnabled}
 }

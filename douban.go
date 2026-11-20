@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 // doubanClient 使用豆瓣 subject_suggest 接口做轻量刮削（扩展数据源）。
@@ -18,11 +17,11 @@ type doubanClient struct {
 	http *http.Client
 }
 
-func newDouban(cfg Config) *doubanClient {
-	if !cfg.DoubanEnabled || strings.TrimSpace(cfg.DoubanBase) == "" {
+func (a *App) newDouban() *doubanClient {
+	if !a.cfg.DoubanEnabled || strings.TrimSpace(a.cfg.DoubanBase) == "" {
 		return nil
 	}
-	return &doubanClient{base: strings.TrimRight(cfg.DoubanBase, "/"), http: &http.Client{Timeout: 15 * time.Second}}
+	return &doubanClient{base: strings.TrimRight(a.cfg.DoubanBase, "/"), http: a.clientFor("other")}
 }
 
 type doubanSuggestion struct {

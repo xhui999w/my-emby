@@ -146,7 +146,7 @@ func (a *App) handleAdminStats(w http.ResponseWriter, r *http.Request, u *User) 
 		"movies": movies, "episodes": episodes, "series": series, "activity": activity,
 		"mediaRoots":        a.store.cfg.MediaRoots,
 		"backend":           a.store.backend,
-		"tmdbEnabled":       a.cfg.TMDBAPIKey != "",
+		"tmdbEnabled":       a.effectiveTMDBKey() != "",
 		"doubanEnabled":     a.cfg.DoubanEnabled,
 		"scrapers":          a.scraperStatus(),
 		"probedCount":       probed,

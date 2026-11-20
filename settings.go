@@ -47,6 +47,13 @@ func (a *App) enhancementValues() map[string]any {
 		"HideMissingActorImages":       a.store.settingBool("hide_missing_actor_images", false),
 		"MergeVersionsInFolder":        a.store.settingBool("merge_versions_folder", false),
 		"MergeVersionsAcrossLibraries": a.store.settingBool("merge_versions_libraries", false),
+		"VirtualLibrary":               a.store.settingBool("virtual_library", false),
+		"Theme":                        a.store.settingBool("theme", false),
+		"TmdbStartup":                  a.store.settingBool("tmdb_startup", false),
+		"Trakt":                        a.store.settingBool("trakt", false),
+		"PerformanceMode":              a.store.settingBool("performance_mode", false),
+		"PosterBadge":                  a.store.settingBool("poster_badge", true),
+		"FastPath":                     a.store.settingBool("fast_path", false),
 		"ScanConcurrency":              a.settingInt("scan_concurrency", 1),
 		"UpdateConcurrency":            a.settingInt("update_concurrency", 1),
 		"ServerName":                   a.effectiveServerName(),
@@ -73,6 +80,13 @@ func (a *App) handleEnhancements(w http.ResponseWriter, r *http.Request, u *User
 		HideMissingActorImages       *bool
 		MergeVersionsInFolder        *bool
 		MergeVersionsAcrossLibraries *bool
+		VirtualLibrary               *bool
+		Theme                        *bool
+		TmdbStartup                  *bool
+		Trakt                        *bool
+		PerformanceMode              *bool
+		PosterBadge                  *bool
+		FastPath                     *bool
 		ScanConcurrency              *int
 		UpdateConcurrency            *int
 		ServerName                   *string
@@ -95,6 +109,13 @@ func (a *App) handleEnhancements(w http.ResponseWriter, r *http.Request, u *User
 	setB("hide_missing_actor_images", b.HideMissingActorImages)
 	setB("merge_versions_folder", b.MergeVersionsInFolder)
 	setB("merge_versions_libraries", b.MergeVersionsAcrossLibraries)
+	setB("virtual_library", b.VirtualLibrary)
+	setB("theme", b.Theme)
+	setB("tmdb_startup", b.TmdbStartup)
+	setB("trakt", b.Trakt)
+	setB("performance_mode", b.PerformanceMode)
+	setB("poster_badge", b.PosterBadge)
+	setB("fast_path", b.FastPath)
 
 	if b.ScanConcurrency != nil && (*b.ScanConcurrency < 1 || *b.ScanConcurrency > 64) {
 		writeErr(w, http.StatusBadRequest, "扫描并发需为 1–64")

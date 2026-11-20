@@ -21,16 +21,47 @@ type tmdbClient struct {
 	http      *http.Client
 }
 
-func newTMDB(cfg Config) *tmdbClient {
-	if strings.TrimSpace(cfg.TMDBAPIKey) == "" {
+func (a *App) effectiveTMDBKey() string {
+	if v := strings.TrimSpace(a.store.setting("tmdb_api_key")); v != "" {
+		return v
+	}
+	return a.cfg.TMDBAPIKey
+}
+
+func (a *App) effectiveTMDBBase() string {
+	if v := strings.TrimSpace(a.store.setting("tmdb_base")); v != "" {
+		return v
+	}
+	return a.cfg.TMDBBase
+}
+
+func (a *App) tmdbRate() int {
+	n := a.settingInt("tmdb_rate", 15)
+	if n < 1 {
+		n = 1
+	}
+	if n > 60 {
+		n = 60
+	}
+	return n
+}
+
+// scrapeSleep 按请求频率限制休眠。
+func (a *App) scrapeSleep() {
+	time.Sleep(time.Duration(1000/a.tmdbRate()) * time.Millisecond)
+}
+
+func (a *App) newTMDB() *tmdbClient {
+	key := a.effectiveTMDBKey()
+	if strings.TrimSpace(key) == "" {
 		return nil
 	}
 	return &tmdbClient{
-		apiKey:    cfg.TMDBAPIKey,
-		lang:      cfg.TMDBLanguage,
-		base:      strings.TrimRight(cfg.TMDBBase, "/"),
-		imageBase: strings.TrimRight(cfg.TMDBImageBase, "/"),
-		http:      &http.Client{Timeout: 20 * time.Second},
+		apiKey:    key,
+		lang:      a.cfg.TMDBLanguage,
+		base:      strings.TrimRight(a.effectiveTMDBBase(), "/"),
+		imageBase: strings.TrimRight(a.cfg.TMDBImageBase, "/"),
+		http:      a.clientFor("tmdb"),
 	}
 }
 

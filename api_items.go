@@ -167,6 +167,9 @@ func (a *App) itemWithUserData(it *Item, u *User) Item {
 	if cp.Etag == "" {
 		cp.Etag = h16(it.Id + "|" + it.Name + "|" + itoa(int(it.RunTimeTicks)))
 	}
+	if a.store.settingBool("hide_missing_actor_images", false) {
+		cp.People = nil
+	}
 	return cp
 }
 

@@ -184,7 +184,7 @@ func (a *App) runScrapeJob(ctx context.Context, j *scrapeJob) {
 					return
 				default:
 				}
-				time.Sleep(120 * time.Millisecond)
+				a.scrapeSleep()
 			}
 			if changed {
 				enriched++
