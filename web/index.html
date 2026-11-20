@@ -253,7 +253,7 @@
         <div class="panel">
           <div class="setrow"><div class="sc-open" style="cursor:pointer"><div class="settitle">开启刮削 ＞</div><div class="setdesc">处理当前媒体库索引中的媒体</div></div><label class="switch"><input type="checkbox" id="scEnabled"><span></span></label></div>
           <div class="setrow"><div class="sc-open-auto" style="cursor:pointer"><div class="settitle">自动刮削 ＞</div><div class="setdesc">监控新增内容；关闭后停止并清理待处理任务</div></div><label class="switch"><input type="checkbox" id="scAuto"><span></span></label></div>
-          <div class="setrow"><div><div class="settitle">手动刮削</div><div class="setdesc">按当前配置执行手动刮削任务</div></div><label class="switch"><input type="checkbox" id="scManual"><span></span></label></div>
+          <div class="setrow"><div class="sc-open-manual" style="cursor:pointer"><div class="settitle">手动刮削 ＞</div><div class="setdesc">按当前配置执行手动刮削任务</div></div><label class="switch"><input type="checkbox" id="scManual"><span></span></label></div>
         </div>
         <div class="panel">
           <div class="setrow"><div><div class="settitle">刮削器（至少选择一个）</div><div class="setdesc">选择元数据与图片来源</div></div><div id="scProviders"></div></div>
@@ -464,6 +464,15 @@
   </div>
 </div>
 
+<!-- 手动刮削 -->
+<div class="dialog" id="manualDlg">
+  <div class="box" style="width:560px">
+    <div class="row-flex" style="justify-content:space-between"><h3 style="margin:0">手动刮削</h3><button id="mnBack">返回</button></div>
+    <div class="setrow" style="margin-top:10px"><div><div class="settitle">手动刮削</div><div class="setdesc">允许按选择目录生成一次性刮削任务</div></div><label class="switch"><input type="checkbox" id="mnLive"><span></span></label></div>
+    <div class="setrow"><div style="cursor:pointer" id="mnDirs"><div class="settitle">选择目录 ＞</div><div class="setdesc">选择需要手动刮削的父目录或子目录</div></div><span class="tag" id="mnCount">已选择 0 个</span></div>
+  </div>
+</div>
+
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -632,6 +641,7 @@ $('#pickDirBtn').onclick=()=>openDirPicker('new');
 $('#dirGo').onclick=()=>browseDirs($('#dirPath').value||'/');
 $('#dirCancel').onclick=()=>$('#dirDlg').classList.remove('show');
 $('#dirPick').onclick=async()=>{
+  if(dirMode==='manual'){ if(!manDirs.includes(dirCur)) manDirs.push(dirCur); $('#dirDlg').classList.remove('show'); $('#mnCount').textContent='已选择 '+manDirs.length+' 个'; api('/admin/scrape/config',{method:'PUT',body:JSON.stringify({ManualDirs:manDirs})}).catch(()=>{}); return; }
   if(dirMode==='probe'){ $('#prDir').value=dirCur; $('#dirDlg').classList.remove('show'); return; }
   if(dirMode==='batch'){ $('#dirDlg').classList.remove('show'); await createBatch(dirCur); return; }
   if(!libSelectedPaths.includes(dirCur)) libSelectedPaths.push(dirCur); renderLibPaths(); $('#dirDlg').classList.remove('show');
@@ -791,6 +801,18 @@ $('#watchLibOk').onclick=async()=>{
   const ids=[...document.querySelectorAll('#watchLibList [data-wl]')].filter(e=>e.checked).map(e=>e.dataset.wl);
   try{ await api('/admin/scrape/config',{method:'PUT',body:JSON.stringify({WatchLibs:ids})}); auWatch=ids; $('#auDirCount').textContent='已选择 '+ids.length+' 个'; $('#watchLibDlg').classList.remove('show'); }catch(e){ alert(e.message); }
 };
+
+/* 手动刮削弹窗 */
+let manDirs=[];
+async function openManual(){
+  const cfg=await api('/admin/scrape/config');
+  $('#mnLive').checked=!!cfg.Manual; manDirs=(cfg.ManualDirs||[]).slice(); $('#mnCount').textContent='已选择 '+manDirs.length+' 个';
+  $('#manualDlg').classList.add('show');
+}
+$('#mnBack').onclick=()=>$('#manualDlg').classList.remove('show');
+$('#mnLive').onchange=()=>api('/admin/scrape/config',{method:'PUT',body:JSON.stringify({Manual:$('#mnLive').checked})});
+document.querySelector('.sc-open-manual').onclick=openManual;
+$('#mnDirs').onclick=()=>openDirPicker('manual');
 setInterval(()=>{ if(state.sec==='scrape'){ refreshScrapeStatus().catch(()=>{}); } if(state.sec==='probe'){ refreshProbeStatus().catch(()=>{}); } }, 3000);
 let prCfg={};
 async function loadProbe(){

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +20,8 @@ type scrapeJob struct {
 	done    int
 	started time.Time
 	message string
+	manual  bool
+	dirs    []string
 	cancel  context.CancelFunc
 }
 
@@ -93,6 +96,10 @@ func (a *App) startScrapeJob(manual bool) (bool, string) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	j := &scrapeJob{state: "running", started: time.Now(), cancel: cancel, message: "运行中"}
+	if manual {
+		j.manual = true
+		j.dirs = splitCSV(a.store.setting("scrape_manual_dirs"))
+	}
 	a.scrapeJob = j
 	a.scrapeMu.Unlock()
 	go a.runScrapeJob(ctx, j)
@@ -115,6 +122,9 @@ func (a *App) runScrapeJob(ctx context.Context, j *scrapeJob) {
 				continue
 			}
 		} else {
+			continue
+		}
+		if j.manual && len(j.dirs) > 0 && !underAnyDir(it.SourcePath, j.dirs) {
 			continue
 		}
 		items = append(items, it)
@@ -311,6 +321,7 @@ func (a *App) scrapeConfig(w http.ResponseWriter, r *http.Request) {
 			"Manual":      a.store.settingBool("scrape_manual", true),
 			"AutoRefresh": a.store.settingBool("scrape_autorefresh", true),
 			"WatchLibs":   splitCSV(a.store.setting("scrape_watch_libs")),
+			"ManualDirs":  splitCSV(a.store.setting("scrape_manual_dirs")),
 			"Providers":   providers,
 			"Available":   avail,
 			"Overwrite":   a.scrapeOverwrite(),
@@ -327,6 +338,7 @@ func (a *App) scrapeConfig(w http.ResponseWriter, r *http.Request) {
 		Manual      *bool
 		AutoRefresh *bool
 		WatchLibs   *[]string
+		ManualDirs  *[]string
 		Providers   *[]string
 		Overwrite   *string
 	}
@@ -348,6 +360,9 @@ func (a *App) scrapeConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	if b.WatchLibs != nil {
 		a.store.setSetting("scrape_watch_libs", strings.Join(*b.WatchLibs, ","))
+	}
+	if b.ManualDirs != nil {
+		a.store.setSetting("scrape_manual_dirs", strings.Join(*b.ManualDirs, ","))
 	}
 	if b.Providers != nil {
 		a.store.setSetting("scrape_providers", strings.Join(*b.Providers, ","))
@@ -458,4 +473,20 @@ func splitCSV(s string) []string {
 		}
 	}
 	return out
+}
+
+func underAnyDir(path string, dirs []string) bool {
+	if path == "" {
+		return false
+	}
+	for _, d := range dirs {
+		d = strings.TrimSpace(d)
+		if d == "" {
+			continue
+		}
+		if path == d || strings.HasPrefix(path, d+string(filepath.Separator)) || strings.HasPrefix(path, d+"/") {
+			return true
+		}
+	}
+	return false
 }
