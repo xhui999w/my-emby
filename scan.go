@@ -61,7 +61,7 @@ func (a *App) startScanWorker() {
 					a.startScrapeJob(false)
 				}
 				if a.hasProbe() {
-					a.probeAll()
+					a.startProbeJob()
 				}
 				a.store.Save()
 			}

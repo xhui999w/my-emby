@@ -16,6 +16,8 @@ type App struct {
 	license    *licenseClient
 	scrapeMu   sync.Mutex
 	scrapeJob  *scrapeJob
+	probeMu    sync.Mutex
+	probeJob   *probeJob
 
 	// 扫描队列
 	scanQueue   chan string
@@ -232,7 +234,7 @@ func (a *App) serve(w http.ResponseWriter, r *http.Request) {
 		a.store.requireAdmin(a.handleScrapeAPI)(w, r)
 		return
 	case "/admin/probe":
-		a.store.requireAdmin(a.handleAdminProbe)(w, r)
+		a.store.requireAdmin(a.handleProbeAPI)(w, r)
 		return
 	case "/admin/scan":
 		a.store.requireAdmin(a.handleScanControl)(w, r)
@@ -258,6 +260,8 @@ func (a *App) serve(w http.ResponseWriter, r *http.Request) {
 		a.store.requireAdmin(a.handleLibraries)(w, r)
 	case path == "/admin/scrape" || strings.HasPrefix(path, "/admin/scrape/"):
 		a.store.requireAdmin(a.handleScrapeAPI)(w, r)
+	case path == "/admin/probe" || strings.HasPrefix(path, "/admin/probe/"):
+		a.store.requireAdmin(a.handleProbeAPI)(w, r)
 	case path == "/api/files" || strings.HasPrefix(path, "/api/files/"):
 		a.store.requireAdmin(a.handleFiles)(w, r)
 	case path == "/Users" || strings.HasPrefix(path, "/Users/"):

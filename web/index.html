@@ -288,14 +288,24 @@
 
       <!-- 媒体信息 -->
       <section id="sec-probe" class="pane hidden">
-        <h2>媒体信息</h2>
+        <h2>提取媒体信息设置</h2>
         <div class="panel">
-          <div class="row-flex" style="margin-bottom:10px">
-            <button class="primary" data-op="probe">探测全部</button>
-            <span class="tag" id="probeInfo">—</span>
-          </div>
-          <p class="muted">使用 ffprobe 提取真实分辨率/编码/音轨/字幕/时长（`PROBE_ENABLED`、`FFPROBE_PATH`）。</p>
+          <div class="setrow"><div><div class="settitle">浏览时提取</div><div class="setdesc">浏览并立即返回已有信息，后台补全视频、音频和字幕信息</div></div><label class="switch"><input type="checkbox" id="prBrowse"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">播放时提取媒体信息</div><div class="setdesc">确认播放后尝试提取当前媒体或单集；已有完整信息会跳过</div></div><label class="switch"><input type="checkbox" id="prPlayback"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">预加载下一集</div><div class="setdesc">播放开始后异步预取下一集媒体信息，播放本身不等</div></div><label class="switch"><input type="checkbox" id="prPreload"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">同系列媒体信息复用</div><div class="setdesc">电视剧同系列的剧集媒体信息复用</div></div><label class="switch"><input type="checkbox" id="prReuse"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">媒体探测测速启用</div><div class="setdesc">最多自动跟踪 3 次探测，兼容更多 CDN</div></div><label class="switch"><input type="checkbox" id="prCdn"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">持久化媒体信息</div><div class="setdesc">媒体移除后仍保留信息，进新库可直接复用</div></div><label class="switch"><input type="checkbox" id="prPersist"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">保存目录</div><div class="setdesc">新媒体信息保存在指定目录；已有媒体信息不迁移</div></div>
+            <div class="row-flex"><input id="prDir" style="width:300px" /><button id="prDirPick">选择</button><button id="prDirSave">保存</button></div></div>
         </div>
+        <div class="panel">
+          <div class="setrow"><div><div class="settitle">批量提取媒体信息</div><div class="setdesc" id="prBatchInfo">批量提取：未运行 · 完成 0 · 跳过 0 · 失败 0 · 等待 0 · 正在提取 0 · 并发 1</div></div>
+            <div class="row-flex"><button class="primary" id="prStart">▶ 开始</button><button id="prStop">■ 停止</button></div></div>
+          <div class="setrow"><div><div class="settitle">实时监控入库</div><div class="setdesc">文件变动后直接提取视频或 STRM；已有完整信息会跳过</div></div><label class="switch"><input type="checkbox" id="prRealtime"><span></span></label></div>
+          <div class="setrow"><div><div class="settitle">媒体信息提取并发</div><div class="setdesc" id="prConcInfo">等待提取数量：0 · 正在提取：0 · 并发上限：1</div></div><input id="prConc" type="number" min="1" max="16" style="width:80px" /></div>
+        </div>
+        <div class="panel" style="padding:0"><button class="primary" id="prSaveAll" style="width:100%;background:#c0392b;border-color:#c0392b;padding:14px">保存设置</button></div>
       </section>
 
       <!-- 用户权限 -->
@@ -592,6 +602,7 @@ $('#pickDirBtn').onclick=()=>openDirPicker('new');
 $('#dirGo').onclick=()=>browseDirs($('#dirPath').value||'/');
 $('#dirCancel').onclick=()=>$('#dirDlg').classList.remove('show');
 $('#dirPick').onclick=async()=>{
+  if(dirMode==='probe'){ $('#prDir').value=dirCur; $('#dirDlg').classList.remove('show'); return; }
   if(dirMode==='batch'){ $('#dirDlg').classList.remove('show'); await createBatch(dirCur); return; }
   if(!libSelectedPaths.includes(dirCur)) libSelectedPaths.push(dirCur); renderLibPaths(); $('#dirDlg').classList.remove('show');
 };
@@ -689,8 +700,37 @@ $('#scStop').onclick=async()=>{ try{ await api('/admin/scrape/stop',{method:'POS
 $('#scRetry').onclick=async()=>{ try{ await api('/admin/scrape/retry',{method:'POST',body:'{}'}); refreshScrapeStatus(); }catch(e){alert(e.message)} };
 $('#scPause').onclick=async()=>{ try{ const st=await api('/admin/scrape/status'); await api('/admin/scrape/'+(st.State==='paused'?'resume':'pause'),{method:'POST',body:'{}'}); refreshScrapeStatus(); }catch(e){alert(e.message)} };
 $('#scScan').onclick=async()=>{ try{ await api('/admin/libraries/scan-all',{method:'POST',body:'{}'}); alert('已开始扫描媒体库'); }catch(e){alert(e.message)} };
-setInterval(()=>{ if(state.sec==='scrape'){ refreshScrapeStatus().catch(()=>{}); } }, 3000);
-async function loadProbe(){ try{ const s=await loadStats(); $('#probeInfo').textContent='已探测 '+(s.probedCount||0)+' / '+(s.movies+s.episodes)+' · ffprobe:'+(s.probeEnabled?'可用':'不可用'); }catch(e){} }
+setInterval(()=>{ if(state.sec==='scrape'){ refreshScrapeStatus().catch(()=>{}); } if(state.sec==='probe'){ refreshProbeStatus().catch(()=>{}); } }, 3000);
+let prCfg={};
+async function loadProbe(){
+  try{
+    const cfg=await api('/admin/probe/config'); prCfg=cfg;
+    $('#prBrowse').checked=!!cfg.Browse; $('#prPlayback').checked=!!cfg.Playback; $('#prPreload').checked=!!cfg.Preload;
+    $('#prReuse').checked=!!cfg.SeriesReuse; $('#prCdn').checked=!!cfg.CDNSpeedtest; $('#prPersist').checked=!!cfg.Persist;
+    $('#prDir').value=cfg.Dir||''; $('#prConc').value=cfg.Concurrency||1; $('#prRealtime').checked=!!cfg.Realtime;
+    await refreshProbeStatus();
+  }catch(e){ $('#prBatchInfo').textContent='加载失败：'+e.message; }
+}
+async function refreshProbeStatus(){
+  const st=await api('/admin/probe/status');
+  const state=st.State==='running'?'运行中':'未运行';
+  $('#prBatchInfo').textContent='批量提取：'+state+' · 完成 '+(st.Done||0)+' · 跳过 '+(st.Skipped||0)+' · 失败 '+(st.Failed||0)+' · 等待 '+(st.Waiting||0)+' · 正在提取 '+(st.Running||0)+' · 并发 '+(st.Concurrency||1);
+  $('#prConcInfo').textContent='等待提取数量：'+(st.Waiting||0)+' · 正在提取：'+(st.Running||0)+' · 并发上限：'+(st.Concurrency||1);
+}
+function prSave(patch){ return api('/admin/probe/config',{method:'PUT',body:JSON.stringify(patch)}); }
+$('#prBrowse').onchange=()=>prSave({Browse:$('#prBrowse').checked});
+$('#prPlayback').onchange=()=>prSave({Playback:$('#prPlayback').checked});
+$('#prPreload').onchange=()=>prSave({Preload:$('#prPreload').checked});
+$('#prReuse').onchange=()=>prSave({SeriesReuse:$('#prReuse').checked});
+$('#prCdn').onchange=()=>prSave({CDNSpeedtest:$('#prCdn').checked});
+$('#prPersist').onchange=()=>prSave({Persist:$('#prPersist').checked});
+$('#prRealtime').onchange=()=>prSave({Realtime:$('#prRealtime').checked});
+$('#prConc').onchange=()=>prSave({Concurrency:parseInt($('#prConc').value,10)||1});
+$('#prDirSave').onclick=()=>prSave({Dir:$('#prDir').value.trim()});
+$('#prDirPick').onclick=()=>openDirPicker('probe');
+$('#prSaveAll').onclick=async()=>{ try{ await api('/admin/probe/config',{method:'PUT',body:JSON.stringify({Browse:$('#prBrowse').checked,Playback:$('#prPlayback').checked,Preload:$('#prPreload').checked,SeriesReuse:$('#prReuse').checked,CDNSpeedtest:$('#prCdn').checked,Persist:$('#prPersist').checked,Realtime:$('#prRealtime').checked,Concurrency:parseInt($('#prConc').value,10)||1,Dir:$('#prDir').value.trim()})}); alert('设置已保存'); }catch(e){alert('保存失败：'+e.message)} };
+$('#prStart').onclick=async()=>{ try{ await api('/admin/probe/start',{method:'POST',body:'{}'}); refreshProbeStatus(); }catch(e){alert('开始失败：'+e.message)} };
+$('#prStop').onclick=async()=>{ try{ await api('/admin/probe/stop',{method:'POST',body:'{}'}); refreshProbeStatus(); }catch(e){alert(e.message)} };
 async function loadTmdb(){ try{ const s=await loadStats(); $('#tmdbInfo').textContent='TMDB:'+(s.tmdbEnabled?'已启用':'未配置')+' ，豆瓣:'+(s.doubanEnabled?'已启用':'未启用'); }catch(e){} }
 
 /* ---------- 用户权限 ---------- */
