@@ -251,7 +251,7 @@
         <h2>刮削管理</h2>
         <p class="muted" style="margin:-8px 0 16px">扫描媒体库文件，获取或输出元数据与图片</p>
         <div class="panel">
-          <div class="setrow"><div><div class="settitle">开启刮削</div><div class="setdesc">处理当前媒体库索引中的媒体</div></div><label class="switch"><input type="checkbox" id="scEnabled"><span></span></label></div>
+          <div class="setrow"><div class="sc-open" style="cursor:pointer"><div class="settitle">开启刮削 ＞</div><div class="setdesc">处理当前媒体库索引中的媒体</div></div><label class="switch"><input type="checkbox" id="scEnabled"><span></span></label></div>
           <div class="setrow"><div><div class="settitle">自动刮削</div><div class="setdesc">监控新增内容；关闭后停止并清理待处理任务</div></div><label class="switch"><input type="checkbox" id="scAuto"><span></span></label></div>
           <div class="setrow"><div><div class="settitle">手动刮削</div><div class="setdesc">按当前配置执行手动刮削任务</div></div><label class="switch"><input type="checkbox" id="scManual"><span></span></label></div>
         </div>
@@ -431,6 +431,19 @@
     <div class="row-flex" style="justify-content:flex-end;margin-top:14px">
       <button id="dirCancel">取消</button><button class="primary" id="dirPick">选择当前目录</button>
     </div>
+  </div>
+</div>
+
+<!-- 开启刮削：分类明细 -->
+<div class="dialog" id="scMediaDlg">
+  <div class="box" style="width:640px;max-height:88vh;overflow:auto">
+    <h3>开启刮削</h3>
+    <div class="setrow" style="border-bottom:1px solid var(--line)">
+      <div><div class="settitle">Fanart.tv API Key</div><div class="setdesc">仅启用 Fanart.tv 时需要</div></div>
+      <input id="scmFanart" style="width:200px" placeholder="未配置" />
+    </div>
+    <div id="scmBody"></div>
+    <div class="row-flex" style="justify-content:flex-end;margin-top:16px"><button id="scmCancel">取消</button><button class="primary" id="scmSave">保存</button></div>
   </div>
 </div>
 
@@ -700,6 +713,43 @@ $('#scStop').onclick=async()=>{ try{ await api('/admin/scrape/stop',{method:'POS
 $('#scRetry').onclick=async()=>{ try{ await api('/admin/scrape/retry',{method:'POST',body:'{}'}); refreshScrapeStatus(); }catch(e){alert(e.message)} };
 $('#scPause').onclick=async()=>{ try{ const st=await api('/admin/scrape/status'); await api('/admin/scrape/'+(st.State==='paused'?'resume':'pause'),{method:'POST',body:'{}'}); refreshScrapeStatus(); }catch(e){alert(e.message)} };
 $('#scScan').onclick=async()=>{ try{ await api('/admin/libraries/scan-all',{method:'POST',body:'{}'}); alert('已开始扫描媒体库'); }catch(e){alert(e.message)} };
+
+/* 开启刮削：分类明细弹窗 */
+const SCM_CATS=[
+ ['Series','电视剧 Series',[['NFO','NFO元数据'],['Poster','海报'],['Backdrop','背景图'],['Logo','Logo'],['Thumb','缩略图'],['Landscape','横向缩略图']]],
+ ['Movie','电影 Movie',[['NFO','NFO元数据'],['Poster','海报'],['Backdrop','背景图'],['Logo','Logo'],['Disc','光盘图'],['Thumb','缩略图'],['Landscape','横向缩略图']]],
+ ['Season','季 Season',[['NFO','NFO元数据'],['Poster','海报'],['Thumb','缩略图'],['Landscape','横向缩略图'],['Backdrop','背景图'],['Logo','Logo']]],
+ ['Episode','集 Episode',[['NFO','NFO元数据'],['Thumb','单集缩略图']]]
+];
+let scMediaCfg=null;
+async function openScrapeMedia(){
+  try{ scMediaCfg=await api('/admin/scrape/media-config'); }catch(e){ alert(e.message); return; }
+  if(!scMediaCfg.Categories) scMediaCfg.Categories={};
+  $('#scmFanart').value=scMediaCfg.FanartKey||'';
+  renderScMedia();
+  $('#scMediaDlg').classList.add('show');
+}
+function renderScMedia(){
+  const cats=scMediaCfg.Categories||{};
+  let html='';
+  for(const [key,label,assets] of SCM_CATS){
+    const c=cats[key]||(cats[key]={});
+    html+='<div style="margin-top:14px"><div class="setrow" style="padding:10px 0"><div class="settitle">'+esc(label)+'</div><label class="switch"><input type="checkbox" data-cat="'+key+'" data-field="Enabled" '+(c.Enabled!==false?'checked':'')+'><span></span></label></div>';
+    for(const [f,fl] of assets){ html+='<label class="chk" style="display:flex;align-items:center;gap:8px;padding:6px 0;color:'+(c[f]?'var(--fg)':'var(--muted)')+'"><input type="checkbox" data-cat="'+key+'" data-field="'+f+'" '+(c[f]?'checked':'')+'> '+esc(fl)+'</label>'; }
+    html+='</div>';
+  }
+  html+='<div style="margin-top:14px"><div class="setrow" style="padding:10px 0"><div><div class="settitle">刮削简体中文</div><div class="setdesc">中文元数据不可用时自动回退影片原语言</div></div><label class="switch"><input type="checkbox" id="scmSubZh" '+(scMediaCfg.SubtitleChinese!==false?'checked':'')+'><span></span></label></div>';
+  html+='<div class="setrow" style="padding:10px 0"><div><div class="settitle">刮削中文海报</div><div class="setdesc">中文海报不可用时自动回退影片原语言海报</div></div><label class="switch"><input type="checkbox" id="scmPosterZh" '+(scMediaCfg.PosterChinese!==false?'checked':'')+'><span></span></label></div></div>';
+  $('#scmBody').innerHTML=html;
+}
+$('#scmCancel').onclick=()=>$('#scMediaDlg').classList.remove('show');
+$('#scmSave').onclick=async()=>{
+  const cats={};
+  document.querySelectorAll('#scmBody [data-cat]').forEach(el=>{ const k=el.dataset.cat, f=el.dataset.field; cats[k]=cats[k]||{}; cats[k][f]=el.checked; });
+  const out={ FanartKey:$('#scmFanart').value.trim(), SubtitleChinese:$('#scmSubZh').checked, PosterChinese:$('#scmPosterZh').checked, Categories:cats };
+  try{ await api('/admin/scrape/media-config',{method:'PUT',body:JSON.stringify(out)}); $('#scMediaDlg').classList.remove('show'); alert('已保存'); }catch(e){ alert('保存失败：'+e.message); }
+};
+document.querySelector('.sc-open').onclick=openScrapeMedia;
 setInterval(()=>{ if(state.sec==='scrape'){ refreshScrapeStatus().catch(()=>{}); } if(state.sec==='probe'){ refreshProbeStatus().catch(()=>{}); } }, 3000);
 let prCfg={};
 async function loadProbe(){

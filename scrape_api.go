@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -105,9 +106,18 @@ func (a *App) runScrapeJob(ctx context.Context, j *scrapeJob) {
 	a.store.mu.RLock()
 	items := make([]*Item, 0)
 	for _, it := range a.store.Items {
-		if it.Type == "Movie" || it.Type == "Series" {
-			items = append(items, it)
+		if it.Type == "Movie" {
+			if !a.scrapeCategoryEnabled("Movie") {
+				continue
+			}
+		} else if it.Type == "Series" {
+			if !a.scrapeCategoryEnabled("Series") {
+				continue
+			}
+		} else {
+			continue
 		}
+		items = append(items, it)
 	}
 	a.store.mu.RUnlock()
 
@@ -266,6 +276,8 @@ func (a *App) handleScrapeAPI(w http.ResponseWriter, r *http.Request, u *User) {
 		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "message": msg})
 	case "status":
 		a.scrapeStatus(w)
+	case "media-config":
+		a.scrapeMediaConfigAPI(w, r)
 	default:
 		// 兼容旧的 /admin/scrape 直接触发
 		ok, msg := a.startScrapeJob(true)
@@ -364,4 +376,66 @@ func (a *App) scrapeStatus(w http.ResponseWriter) {
 	a.store.mu.RUnlock()
 	snap["Logs"] = logs
 	writeJSON(w, http.StatusOK, snap)
+}
+
+func defaultScrapeMediaConfig() map[string]any {
+	return map[string]any{
+		"FanartKey":       "",
+		"SubtitleChinese": true,
+		"PosterChinese":   true,
+		"Categories": map[string]any{
+			"Series":  map[string]any{"Enabled": true, "NFO": true, "Poster": true, "Backdrop": false, "Logo": false, "Thumb": false, "Landscape": false},
+			"Movie":   map[string]any{"Enabled": true, "NFO": true, "Poster": true, "Backdrop": false, "Logo": false, "Disc": false, "Thumb": false, "Landscape": false},
+			"Season":  map[string]any{"Enabled": true, "NFO": true, "Poster": true, "Thumb": false, "Landscape": false, "Backdrop": false, "Logo": false},
+			"Episode": map[string]any{"Enabled": true, "NFO": true, "Thumb": false},
+		},
+	}
+}
+
+func (a *App) scrapeMediaConfig() map[string]any {
+	raw := a.store.setting("scrape_media_config")
+	if strings.TrimSpace(raw) == "" {
+		return defaultScrapeMediaConfig()
+	}
+	var v map[string]any
+	if json.Unmarshal([]byte(raw), &v) == nil {
+		return v
+	}
+	return defaultScrapeMediaConfig()
+}
+
+func (a *App) scrapeCategoryEnabled(kind string) bool {
+	cfg := a.scrapeMediaConfig()
+	cats, _ := cfg["Categories"].(map[string]any)
+	if cats == nil {
+		return true
+	}
+	c, _ := cats[kind].(map[string]any)
+	if c == nil {
+		return true
+	}
+	if b, ok := c["Enabled"].(bool); ok {
+		return b
+	}
+	return true
+}
+
+func (a *App) scrapeMediaConfigAPI(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		writeJSON(w, http.StatusOK, a.scrapeMediaConfig())
+		return
+	}
+	if r.Method != http.MethodPut {
+		writeErr(w, http.StatusMethodNotAllowed, "仅支持 GET/PUT")
+		return
+	}
+	raw, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	if err != nil || !json.Valid(raw) {
+		writeErr(w, http.StatusBadRequest, "请求体无效")
+		return
+	}
+	a.store.setSetting("scrape_media_config", string(raw))
+	go a.store.Save()
+	a.store.addActivity("刮削设置", "更新分类刮削明细", "ScrapeConfig", "Information")
+	writeJSON(w, http.StatusOK, a.scrapeMediaConfig())
 }
