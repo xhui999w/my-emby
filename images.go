@@ -45,8 +45,20 @@ func (a *App) handleItemImage(w http.ResponseWriter, r *http.Request, u *User, i
 		}
 	}
 	if strings.EqualFold(wantType, "Thumb") {
+		if it.ThumbPath != "" {
+			if serveLocalImage(w, r, it.ThumbPath) {
+				return
+			}
+		}
 		if p, ok := a.ensureThumb(it); ok {
 			if serveLocalImage(w, r, p) {
+				return
+			}
+		}
+	}
+	if strings.EqualFold(wantType, "Logo") {
+		if it.LogoPath != "" {
+			if serveLocalImage(w, r, it.LogoPath) {
 				return
 			}
 		}

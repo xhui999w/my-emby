@@ -71,6 +71,8 @@ type itemRecord struct {
 	PosterPathX   string          `json:"__posterPath"`
 	HasBackdropX  bool            `json:"__hasBackdrop"`
 	BackdropPathX string          `json:"__backdropPath"`
+	LogoPathX     string          `json:"__logoPath"`
+	ThumbPathX    string          `json:"__thumbPath"`
 	SourcePathX   string          `json:"__sourcePath"`
 	StreamURLX    string          `json:"__streamUrl"`
 	SubtitlesX    []SubtitleTrack `json:"__subtitles"`
@@ -80,6 +82,7 @@ type itemRecord struct {
 func toRecord(it *Item) itemRecord {
 	return itemRecord{Item: *it, LibraryIdX: it.LibraryId, HasPosterX: it.HasPoster,
 		PosterPathX: it.PosterPath, HasBackdropX: it.HasBackdrop, BackdropPathX: it.BackdropPath,
+		LogoPathX: it.LogoPath, ThumbPathX: it.ThumbPath,
 		SourcePathX: it.SourcePath, StreamURLX: it.StreamURL,
 		SubtitlesX: it.Subtitles, ProbedX: it.Probed}
 }
@@ -91,6 +94,8 @@ func (r itemRecord) toItem() *Item {
 	it.PosterPath = r.PosterPathX
 	it.HasBackdrop = r.HasBackdropX
 	it.BackdropPath = r.BackdropPathX
+	it.LogoPath = r.LogoPathX
+	it.ThumbPath = r.ThumbPathX
 	it.SourcePath = r.SourcePathX
 	it.StreamURL = r.StreamURLX
 	it.Subtitles = r.SubtitlesX

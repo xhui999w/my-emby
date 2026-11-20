@@ -144,6 +144,8 @@ type Item struct {
 	PosterPath   string          `json:"-"`
 	HasBackdrop  bool            `json:"-"`
 	BackdropPath string          `json:"-"`
+	LogoPath     string          `json:"-"` // Fanart.tv Logo
+	ThumbPath    string          `json:"-"` // Fanart.tv 缩略图（优先于 ffmpeg 截帧）
 	SourcePath   string          `json:"-"`
 	StreamURL    string          `json:"-"` // .strm 指向的远端直链
 	Subtitles    []SubtitleTrack `json:"-"` // 外挂字幕轨

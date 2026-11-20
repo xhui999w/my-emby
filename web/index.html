@@ -489,6 +489,10 @@
       <div><div class="settitle">Fanart.tv API Key</div><div class="setdesc">仅启用 Fanart.tv 时需要</div></div>
       <input id="scmFanart" style="width:200px" placeholder="未配置" />
     </div>
+    <div class="setrow" style="border-bottom:1px solid var(--line)">
+      <div><div class="settitle">Fanart.tv 基础地址</div><div class="setdesc">可选；默认 https://webservice.fanart.tv</div></div>
+      <input id="scmFanartBase" style="width:260px" placeholder="https://webservice.fanart.tv" />
+    </div>
     <div id="scmBody"></div>
     <div class="row-flex" style="justify-content:flex-end;margin-top:16px"><button id="scmCancel">取消</button><button class="primary" id="scmSave">保存</button></div>
   </div>
@@ -525,7 +529,7 @@
   <div class="box" style="width:620px">
     <div class="row-flex" style="justify-content:space-between"><h3 style="margin:0">刮削器</h3><button id="scrBack">返回</button></div>
     <div id="scraperList" style="margin-top:14px"></div>
-    <p class="muted" style="font-size:12px;margin-top:14px">至少开启一个刮削器。拖动 ≡ 调整优先级；仅处理已勾选的内容，前面的先执行，后面的只补充缺失信息，并遵循覆盖或跳过策略。Fanart.tv / Bangumi 需接入后才可用（当前未实现）。</p>
+    <p class="muted" style="font-size:12px;margin-top:14px">至少开启一个刮削器。拖动 ≡ 调整优先级；仅处理已勾选的内容，前面的先执行，后面的只补充缺失信息，并遵循覆盖或跳过策略。Fanart.tv 在「开启刮削 → Fanart.tv API Key」配置后可用（电影背景图/Logo/缩略图，建议排在 TMDB 之后）；Bangumi 未实现。</p>
   </div>
 </div>
 
@@ -839,6 +843,7 @@ async function openScrapeMedia(){
   try{ scMediaCfg=await api('/admin/scrape/media-config'); }catch(e){ alert(e.message); return; }
   if(!scMediaCfg.Categories) scMediaCfg.Categories={};
   $('#scmFanart').value=scMediaCfg.FanartKey||'';
+  $('#scmFanartBase').value=scMediaCfg.FanartBase||'';
   renderScMedia();
   $('#scMediaDlg').classList.add('show');
 }
@@ -859,7 +864,7 @@ $('#scmCancel').onclick=()=>$('#scMediaDlg').classList.remove('show');
 $('#scmSave').onclick=async()=>{
   const cats={};
   document.querySelectorAll('#scmBody [data-cat]').forEach(el=>{ const k=el.dataset.cat, f=el.dataset.field; cats[k]=cats[k]||{}; cats[k][f]=el.checked; });
-  const out={ FanartKey:$('#scmFanart').value.trim(), SubtitleChinese:$('#scmSubZh').checked, PosterChinese:$('#scmPosterZh').checked, Categories:cats };
+  const out={ FanartKey:$('#scmFanart').value.trim(), FanartBase:$('#scmFanartBase').value.trim(), SubtitleChinese:$('#scmSubZh').checked, PosterChinese:$('#scmPosterZh').checked, Categories:cats };
   try{ await api('/admin/scrape/media-config',{method:'PUT',body:JSON.stringify(out)}); $('#scMediaDlg').classList.remove('show'); alert('已保存'); }catch(e){ alert('保存失败：'+e.message); }
 };
 document.querySelector('.sc-open').onclick=openScrapeMedia;

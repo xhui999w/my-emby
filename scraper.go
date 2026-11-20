@@ -18,6 +18,9 @@ func (a *App) scraperProviders() []scraperProvider {
 	if d := a.newDouban(); d != nil {
 		ps = append(ps, scraperProvider{"douban", func(app *App, it *Item) bool { return app.doubanEnrich(d, it) }})
 	}
+	if f := a.newFanart(); f != nil {
+		ps = append(ps, scraperProvider{"fanart", func(app *App, it *Item) bool { return app.fanartEnrich(f, it) }})
+	}
 	return ps
 }
 
@@ -70,5 +73,5 @@ func (a *App) scrapeAll() (int, int) {
 
 // scraperStatus 供后台展示当前可用刮削源。
 func (a *App) scraperStatus() map[string]bool {
-	return map[string]bool{"tmdb": a.effectiveTMDBKey() != "", "douban": a.cfg.DoubanEnabled}
+	return map[string]bool{"tmdb": a.effectiveTMDBKey() != "", "douban": a.cfg.DoubanEnabled, "fanart": a.fanartKey() != ""}
 }
