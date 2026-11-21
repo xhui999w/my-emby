@@ -228,11 +228,34 @@ func (s *Store) scanAll(onlyLib string) ScanResult {
 
 	items := map[string]*Item{}
 	if onlyLib != "" {
-		// 增量：保留其它库的条目
-		for _, it := range oldItems {
-			if it.LibraryId != onlyLib {
-				items[it.Id] = it
+		// 增量：保留其它库的条目。
+		// 但如果旧条目（可能挂在其它库，如早先的整树大库）的文件位于本次扫描库的路径之下，
+		// 必须剔除——它们会被本次扫描重新收录并归属到本库，避免被按 ID 去重跳过。
+		s.mu.RLock()
+		lib := s.Libraries[onlyLib]
+		s.mu.RUnlock()
+		var libPaths []string
+		if lib != nil {
+			libPaths = lib.Paths
+		}
+		underLib := func(p string) bool {
+			if p == "" {
+				return false
 			}
+			pc := filepath.Clean(p)
+			for _, lp := range libPaths {
+				lc := filepath.Clean(lp)
+				if strings.EqualFold(pc, lc) || strings.HasPrefix(pc, lc+string(os.PathSeparator)) || strings.HasPrefix(pc, lc+"/") {
+					return true
+				}
+			}
+			return false
+		}
+		for _, it := range oldItems {
+			if it.LibraryId == onlyLib || underLib(it.SourcePath) {
+				continue
+			}
+			items[it.Id] = it
 		}
 	}
 
