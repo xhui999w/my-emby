@@ -21,22 +21,37 @@ type fileEntry struct {
 	Modified time.Time `json:"modified"`
 }
 
-// fileRel 把客户端传入的"根相对路径"规范化并校验，拒绝 ../ 与非法字符。
+// fileRel 把客户端传入的"根相对路径"规范化并校验。
+// 宽容处理输入：合并连续斜杠、去首尾斜杠、忽略多余 "." 段；
+// 只拦截目录穿越（..）与真正非法的字符。
 func (a *App) fileRel(p string) (string, error) {
 	p = strings.TrimSpace(strings.ReplaceAll(p, "\\", "/"))
 	if strings.ContainsAny(p, "\x00\r\n:*?\"<>|") {
 		return "", errBadPath
 	}
+	for strings.Contains(p, "//") {
+		p = strings.ReplaceAll(p, "//", "/")
+	}
 	p = strings.TrimPrefix(p, "/")
+	p = strings.TrimRight(p, "/")
 	if p == "" {
 		return ".", nil
 	}
-	for _, seg := range strings.Split(p, "/") {
-		if seg == "" || seg == "." || seg == ".." {
+	segs := strings.Split(p, "/")
+	clean := make([]string, 0, len(segs))
+	for _, seg := range segs {
+		if seg == "" || seg == "." {
+			continue
+		}
+		if seg == ".." {
 			return "", errBadPath
 		}
+		clean = append(clean, seg)
 	}
-	native := filepath.FromSlash(p)
+	if len(clean) == 0 {
+		return ".", nil
+	}
+	native := filepath.FromSlash(strings.Join(clean, "/"))
 	if !filepath.IsLocal(native) {
 		return "", errBadPath
 	}
