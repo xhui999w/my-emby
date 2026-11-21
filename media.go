@@ -143,24 +143,77 @@ type ScanResult struct {
 	Libs     int
 }
 
+// detectCollectionTypeByName 依据库名猜测集合类型。
+func detectCollectionTypeByName(name string) string {
+	low := strings.ToLower(name)
+	if strings.Contains(low, "tv") || strings.Contains(low, "show") || strings.Contains(low, "series") ||
+		strings.Contains(name, "剧") || strings.Contains(name, "动漫") || strings.Contains(name, "动画") ||
+		strings.Contains(name, "综艺") {
+		return "tvshows"
+	}
+	return "movies"
+}
+
+// createAutoLibraryLocked 首次扫描自动建库（需持有 s.mu 写锁）。
+func (s *Store) createAutoLibraryLocked(root, name string) {
+	libID := "lib-" + h16(root)
+	if _, ok := s.Libraries[libID]; ok {
+		return
+	}
+	s.Libraries[libID] = &Library{
+		Id: libID, Name: name, Paths: []string{root},
+		CollectionType: detectCollectionTypeByName(name),
+	}
+}
+
 // scanAll 扫描媒体库。onlyLib 为空表示全量；否则只重建该库（保留其它库条目）。
 func (s *Store) scanAll(onlyLib string) ScanResult {
 	var res ScanResult
 	s.mu.Lock()
 	if len(s.Libraries) == 0 {
-		for _, root := range s.cfg.MediaRoots {
-			libID := "lib-" + h16(root)
-			name := filepath.Base(root)
-			if name == "" || name == "." || name == string(filepath.Separator) {
-				name = "媒体库"
+		created := 0
+		if s.cfg.AutoSplit {
+			// 按一级子目录自动拆分建库（如 /media/国产剧、/media/华语电影 …）；
+			// 根目录直属视频归入以根命名的库（扫描时库路径互斥，不会重复导入）。
+			for _, root := range s.cfg.MediaRoots {
+				entries, err := os.ReadDir(root)
+				if err != nil {
+					continue
+				}
+				rootHasDirect := false
+				for _, e := range entries {
+					if e.IsDir() {
+						continue
+					}
+					ext := strings.ToLower(filepath.Ext(e.Name()))
+					if videoExts[ext] || ext == ".strm" {
+						rootHasDirect = true
+						break
+					}
+				}
+				if rootHasDirect {
+					s.createAutoLibraryLocked(root, filepath.Base(root))
+					created++
+				}
+				for _, e := range entries {
+					if !e.IsDir() || skipDirs[e.Name()] || strings.HasPrefix(e.Name(), ".") {
+						continue
+					}
+					sub := filepath.Join(root, e.Name())
+					s.createAutoLibraryLocked(sub, e.Name())
+					created++
+				}
 			}
-			ct := "movies"
-			low := strings.ToLower(name)
-			if strings.Contains(low, "tv") || strings.Contains(low, "show") ||
-				strings.Contains(low, "series") || strings.Contains(name, "剧") {
-				ct = "tvshows"
+		}
+		if created == 0 {
+			// 回退：每个媒体根建一个库（无子目录或关闭拆分时）
+			for _, root := range s.cfg.MediaRoots {
+				name := filepath.Base(root)
+				if name == "" || name == "." || name == string(filepath.Separator) {
+					name = "媒体库"
+				}
+				s.createAutoLibraryLocked(root, name)
 			}
-			s.Libraries[libID] = &Library{Id: libID, Name: name, Paths: []string{root}, CollectionType: ct}
 		}
 	}
 	s.mu.Unlock()
@@ -195,9 +248,12 @@ func (s *Store) scanAll(onlyLib string) ScanResult {
 		root string
 	}
 	var pairs []libRoot
+	allLibRoots := map[string]bool{}
 	for _, l := range s.Libraries {
 		for _, r := range l.Paths {
+			cleaned := strings.ToLower(filepath.Clean(r))
 			pairs = append(pairs, libRoot{l, r})
+			allLibRoots[cleaned] = true
 		}
 	}
 	s.mu.RUnlock()
@@ -214,6 +270,7 @@ func (s *Store) scanAll(onlyLib string) ScanResult {
 		}
 		libID := lib.Id
 		ct := lib.CollectionType
+		selfRoot := strings.ToLower(filepath.Clean(root))
 
 		_ = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -221,6 +278,11 @@ func (s *Store) scanAll(onlyLib string) ScanResult {
 			}
 			if info.IsDir() {
 				if skipDirs[info.Name()] {
+					return filepath.SkipDir
+				}
+				// 库路径互斥：该目录是其它媒体库的根时跳过，避免重复导入
+				if allLibRoots[strings.ToLower(filepath.Clean(path))] &&
+					!strings.EqualFold(filepath.Clean(path), selfRoot) {
 					return filepath.SkipDir
 				}
 				return nil

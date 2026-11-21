@@ -12,6 +12,8 @@
 - **Emby 兼容接口**：`/System/Info/Public`、`/Users/AuthenticateByName`、`/Users/{id}/Views`、
   `/Users/{id}/Items`、`/Items/{id}`、`/Items/{id}/PlaybackInfo`、`/Videos/{id}/stream` 等，可连接 Infuse/Yamby/SenPlayer 等客户端。
 - **媒体库**：扫描 `MEDIA_ROOTS` 视频文件，自动区分电影/剧集（`SxxExx`/`NxM`），建立 剧→季→集 层级。
+  **首次扫描按一级子目录自动拆分媒体库**（`MEDIA_AUTO_SPLIT`，默认开）：`/media/国产剧`、`/media/华语电影` … 各建一库，
+  类型按名字识别（剧/动漫/动画/综艺→电视剧）；根目录直属影片归入以根命名的库；库路径互斥扫描不重复导入。
 - **实时监听 + 增量扫描**：轮询监听媒体目录，新增/删除/改名/字幕或海报变化自动触发**按库增量重扫**（无需手动刷新）；
   扫描**队列**串行化、`GET/PUT /admin/scan` 可**暂停/继续**扫描。
 - **ffprobe 媒体信息探测**：扫描后并发调用 ffprobe，填充真实分辨率/编码/音轨/字幕/时长/码率/容器到 `MediaStreams` 并持久化。
@@ -88,6 +90,7 @@ docker compose up -d --build
 | --- | --- | --- |
 | `HTTP_PORT` | 监听端口 | `8097` |
 | `MEDIA_ROOTS` | 媒体根目录（`:`/`;` 分隔，容器内路径） | `./media` |
+| `MEDIA_AUTO_SPLIT` | 首次扫描按一级子目录自动拆分媒体库 | `true` |
 | `APP_DATA_PATH` | 数据目录（JSON 库 / 海报缓存 / strm） | `./data` |
 | `ADMIN_PASSWORD` | 首次初始化管理员密码 | `admin` |
 | `DATABASE_URL` | PostgreSQL DSN；留空用 JSON | 空 |

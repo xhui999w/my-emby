@@ -34,6 +34,9 @@ type Config struct {
 	WatchEnabled     bool
 	WatchIntervalSec int
 
+	// 首次扫描按一级子目录自动拆分媒体库
+	AutoSplit bool
+
 	// ffprobe 媒体信息探测
 	ProbeEnabled     bool
 	FFprobePath      string
@@ -80,6 +83,7 @@ func loadConfig() Config {
 
 		WatchEnabled:     env("WATCH_ENABLED", "true") == "true",
 		WatchIntervalSec: atoiEnv("WATCH_INTERVAL_SEC", 8),
+		AutoSplit:        env("MEDIA_AUTO_SPLIT", "true") == "true",
 		ProbeEnabled:     env("PROBE_ENABLED", "true") == "true",
 		FFprobePath:      env("FFPROBE_PATH", "ffprobe"),
 		ProbeConcurrency: atoiEnv("PROBE_CONCURRENCY", 2),
