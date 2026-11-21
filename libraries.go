@@ -172,6 +172,39 @@ func (a *App) listLibraries(w http.ResponseWriter) {
 	})
 }
 
+// resolveMediaPath 把目录选择器返回的路径解析为真实存在的目录。
+// 选择器路径相对媒体根（如 /影视库/华语电影 → /media/影视库/华语电影）；
+// 依次尝试各媒体根，取第一个存在的；也兼容容器内绝对路径与相对路径。
+func (a *App) resolveMediaPath(p string) (string, bool) {
+	p = strings.TrimSpace(strings.ReplaceAll(p, "\\", "/"))
+	if p == "" {
+		return "", false
+	}
+	isAbs := strings.HasPrefix(p, "/")
+	if isAbs {
+		rel := strings.TrimPrefix(p, "/")
+		for _, root := range a.cfg.MediaRoots {
+			cand := filepath.Join(root, filepath.FromSlash(rel))
+			if fi, err := os.Stat(cand); err == nil && fi.IsDir() {
+				return cand, true
+			}
+		}
+		// 容器内绝对路径本身存在（如 /media）
+		if fi, err := os.Stat(p); err == nil && fi.IsDir() {
+			return filepath.Clean(p), true
+		}
+		return "", false
+	}
+	abs, err := filepath.Abs(p)
+	if err != nil {
+		return "", false
+	}
+	if fi, err := os.Stat(abs); err == nil && fi.IsDir() {
+		return abs, true
+	}
+	return "", false
+}
+
 func (a *App) createLibrary(w http.ResponseWriter, r *http.Request) {
 	var b struct {
 		Name           string
@@ -195,18 +228,12 @@ func (a *App) createLibrary(w http.ResponseWriter, r *http.Request) {
 	}
 	paths := make([]string, 0, len(b.Paths))
 	for _, p := range b.Paths {
-		p = strings.TrimSpace(p)
-		if p == "" {
-			continue
-		}
-		if abs, err := filepath.Abs(p); err == nil {
-			p = abs
-		}
-		if fi, err := os.Stat(p); err != nil || !fi.IsDir() {
-			writeErr(w, http.StatusBadRequest, "目录不存在或不是文件夹: "+p)
+		resolved, ok := a.resolveMediaPath(p)
+		if !ok {
+			writeErr(w, http.StatusBadRequest, "目录不存在或不是文件夹: "+strings.TrimSpace(p))
 			return
 		}
-		paths = append(paths, p)
+		paths = append(paths, resolved)
 	}
 	if len(paths) == 0 {
 		writeErr(w, http.StatusBadRequest, "请至少选择一个有效媒体目录")
@@ -254,14 +281,12 @@ func (a *App) updateLibrary(w http.ResponseWriter, r *http.Request, id string) {
 	if len(b.Paths) > 0 {
 		paths := make([]string, 0, len(b.Paths))
 		for _, p := range b.Paths {
-			p = strings.TrimSpace(p)
-			if p == "" {
-				continue
+			resolved, ok := a.resolveMediaPath(p)
+			if !ok {
+				writeErr(w, http.StatusBadRequest, "目录不存在或不是文件夹: "+strings.TrimSpace(p))
+				return
 			}
-			if abs, err := filepath.Abs(p); err == nil {
-				p = abs
-			}
-			paths = append(paths, p)
+			paths = append(paths, resolved)
 		}
 		if len(paths) > 0 {
 			l.Paths = paths
