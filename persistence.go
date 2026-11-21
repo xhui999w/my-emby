@@ -44,7 +44,7 @@ func (p *jsonPersister) Load() (*dbSnapshot, error) {
 func (p *jsonPersister) Save(snap *dbSnapshot) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	raw, err := json.MarshalIndent(snap, "", "  ")
+	raw, err := json.Marshal(snap)
 	if err != nil {
 		return err
 	}

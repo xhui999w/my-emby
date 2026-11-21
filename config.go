@@ -71,7 +71,7 @@ func loadConfig() Config {
 		AdminPassword:   env("ADMIN_PASSWORD", ""),
 		PublicURL:       env("PUBLIC_URL", ""),
 		BootstrapAPIKey: env("BOOTSTRAP_API_KEY", ""),
-		ServerName:      env("SERVER_NAME", "Go-Emby"),
+		ServerName:      env("SERVER_NAME", "my-emby"),
 
 		DatabaseURL:   firstEnv("DATABASE_URL", "POSTGRES_DSN"),
 		TMDBAPIKey:    env("TMDB_API_KEY", ""),
@@ -81,8 +81,8 @@ func loadConfig() Config {
 		DoubanEnabled: env("DOUBAN_ENABLED", "false") == "true",
 		DoubanBase:    env("DOUBAN_BASE", "https://movie.douban.com"),
 
-		WatchEnabled:     env("WATCH_ENABLED", "true") == "true",
-		WatchIntervalSec: atoiEnv("WATCH_INTERVAL_SEC", 8),
+		WatchEnabled:     env("WATCH_ENABLED", "false") == "true",
+		WatchIntervalSec: atoiEnv("WATCH_INTERVAL_SEC", 30),
 		AutoSplit:        env("MEDIA_AUTO_SPLIT", "true") == "true",
 		ProbeEnabled:     env("PROBE_ENABLED", "true") == "true",
 		FFprobePath:      env("FFPROBE_PATH", "ffprobe"),

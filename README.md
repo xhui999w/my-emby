@@ -100,7 +100,7 @@ docker compose up -d --build
 | `XIAOYA_SOURCE` | 远端 WebDAV 根（如 `http://host:5244/dav/电影`） | 空 |
 | `XIAOYA_USERNAME` / `XIAOYA_PASSWORD` | WebDAV 账号 | `dav` / 空 |
 | `XIAOYA_INTERVAL_MIN` | 定时同步间隔（分钟，0=不定时） | `0` |
-| `WATCH_ENABLED` / `WATCH_INTERVAL_SEC` | 是否轮询监听媒体目录 / 轮询秒数 | `true` / `8` |
+| `WATCH_ENABLED` / `WATCH_INTERVAL_SEC` | 是否轮询监听媒体目录 / 轮询秒数（**大库建议关**：轮询遍历全树） | `false` / `30` |
 | `PROBE_ENABLED` / `FFPROBE_PATH` / `PROBE_CONCURRENCY` | 是否 ffprobe 探测 / ffprobe 路径 / 并发 | `true` / `ffprobe` / `2` |
 | `FILE_MANAGER_ROOT` | 文件管理根目录（默认第一个媒体根） | 空 |
 | `THUMBNAIL_ENABLED` / `FFMPEG_PATH` | 是否生成缩略图 / ffmpeg 路径 | `true` / `ffmpeg` |
@@ -165,6 +165,9 @@ my-emby/
 
 - 上游使用独立的授权服务与 Xiaoya 专用逻辑；本复刻保留免费模式授权入口与标准 WebDAV STRM 同步。
 - 本复刻面向可运行、可读、可二次开发，SQL 采用「快照式全量 upsert」而非复杂增量迁移；生产超大媒体库可再优化。
+- **内存说明**：本复刻当前是「全量内存索引」设计（条目在进程内存 + JSON/PG 快照），数十万集规模内存占用会明显高于
+  上游（上游条目存 PG、查询走 SQL，约 100MB）。大库建议：关闭实时监听（默认已关）、使用 PostgreSQL 模式、
+  首次全量扫描耐心等待（完成后有 Probed/快照缓存）。将扫描改为「分批直写 PG、内存只留轻量索引」在计划中。
 
 ## 说明与致谢
 

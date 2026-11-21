@@ -45,12 +45,14 @@ func (a *App) startScanWorker() {
 	go func() {
 		for libID := range a.scanQueue {
 			a.store.scanWait()
+			a.store.scanActive.Store(true)
 			var res ScanResult
 			if libID == "" {
 				res = a.store.Scan()
 			} else {
 				res = a.store.ScanLibrary(libID)
 			}
+			a.store.scanActive.Store(false)
 			a.store.Save()
 			a.store.addActivity("媒体库扫描",
 				"扫描完成：电影 "+itoa(res.Movies)+"，剧集 "+itoa(res.Episodes)+"，剧 "+itoa(res.Series),

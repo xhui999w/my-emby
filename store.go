@@ -7,6 +7,7 @@ import (
 	"log"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -49,6 +50,7 @@ type Store struct {
 
 	scanPauseMu sync.Mutex
 	scanResume  chan struct{}
+	scanActive  atomic.Bool
 }
 
 type dbUser struct {

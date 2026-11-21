@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>go-emby · 管理台</title>
+<title>{{SERVER_NAME}} · 管理台</title>
 <style>
   :root{
     --bg:#0e1013; --panel:#15181e; --panel2:#1b1f27; --line:#272c36;
@@ -129,7 +129,7 @@
 <!-- 登录 -->
 <div id="loginView" class="login-wrap">
   <div class="login">
-    <h1>go-<span style="color:var(--accent)">emby</span></h1>
+    <h1>{{SERVER_NAME}}</h1>
     <p>Emby 兼容媒体服务器 · 登录以进入</p>
     <div class="row">
       <input id="loginUser" placeholder="用户名" value="admin" autocomplete="username" />
@@ -143,7 +143,7 @@
 <!-- 主体 -->
 <div id="appView" class="hidden">
   <header class="topbar">
-    <div class="brand">go-<span>emby</span></div>
+    <div class="brand">{{SERVER_NAME}}</div>
     <div class="spacer"></div>
     <button class="iconbtn" id="toLibrary" title="媒体库">▦</button>
     <button class="iconbtn" id="toLogs" title="日志">🕘</button>

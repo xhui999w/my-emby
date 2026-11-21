@@ -69,7 +69,7 @@ func main() {
 		Handler:           app,
 		ReadHeaderTimeout: 15 * time.Second,
 	}
-	log.Printf("Go-Emby(复刻版) %s 监听 %s", serverVersion, addr)
+	log.Printf("my-emby %s 监听 %s", serverVersion, addr)
 	log.Printf("Web 管理/海报墙: http://<server-ip>%s/", addr)
 	log.Printf("Emby 客户端连接地址: http://<server-ip>%s", addr)
 	if err := srv.ListenAndServe(); err != nil {

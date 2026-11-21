@@ -73,6 +73,10 @@ func (a *App) startWatcher() {
 		ticker := time.NewTicker(time.Duration(interval) * time.Second)
 		defer ticker.Stop()
 		for range ticker.C {
+			// 扫描进行中跳过本轮轮询：避免与全量扫描抢 CPU/IO，也防止半成品快照触发误报
+			if a.store.scanActive.Load() {
+				continue
+			}
 			cur := a.collectStamps()
 			a.watchMu.Lock()
 			old := a.watchSnap
